@@ -1,6 +1,6 @@
 import { and, eq, integrationCredentialsMetadata, integrations, isNull, secrets, type DbExecutor } from "@revenueos/database";
 import type { IntegrationKey, IntegrationStatus } from "@revenueos/shared";
-import { decryptSecret, encryptSecret } from "@revenueos/shared/server";
+import { decryptSecret, encryptSecret, env } from "@revenueos/shared/server";
 import { db } from "./deps";
 
 /**
@@ -124,5 +124,5 @@ export async function integrationSecret(key: IntegrationKey, workspaceId: string
     const v = await readCredential({ integrationId: integ.id }, type);
     if (v) return v;
   }
-  return envVar ? (process.env[envVar] ?? null) : null;
+  return envVar ? (env(envVar) ?? null) : null;
 }

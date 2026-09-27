@@ -9,6 +9,8 @@ import {
   type ScryptOptions,
 } from "node:crypto";
 
+import { env } from "./env";
+
 /* Server-only helpers. Never import from client components. */
 
 function scrypt(password: string, salt: Buffer, keylen: number, opts: ScryptOptions): Promise<Buffer> {
@@ -72,7 +74,7 @@ export interface EncryptedSecret {
   keyVersion: number;
 }
 
-export function loadEncryptionKey(raw = process.env.APP_ENCRYPTION_KEY): Buffer {
+export function loadEncryptionKey(raw: string | undefined = env("APP_ENCRYPTION_KEY")): Buffer {
   if (!raw) {
     throw new Error(
       "APP_ENCRYPTION_KEY is not set. Run `pnpm setup` (or generate 32 random bytes as base64) and add it to your .env file.",

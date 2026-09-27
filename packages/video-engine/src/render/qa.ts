@@ -1,6 +1,6 @@
 import { PLATFORM_CAPABILITIES, type Platform, type PlatformCopy, type VideoSpec } from "@revenueos/shared";
 import { buildTheme } from "../theme";
-import { fitFontSize } from "../utils";
+import { fitFontSize } from "../layout";
 import type { FrameStats } from "./frames";
 import type { ValidationCheck } from "./probe";
 

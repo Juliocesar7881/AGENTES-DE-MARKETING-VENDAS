@@ -154,7 +154,7 @@ export interface Totals {
   aiCostUsd: number;
 }
 
-export async function totals(workspaceIds: string[], from: Date, to: Date = new Date(8640000000000000)): Promise<Totals> {
+export async function totals(workspaceIds: string[], from: Date, to: Date = new Date("2999-12-31T00:00:00Z")): Promise<Totals> {
   if (workspaceIds.length === 0) return { revenueCents: 0, sales: 0, leads: 0, qualifiedLeads: 0, checkouts: 0, postsPublished: 0, contentsPublished: 0, readyContent: 0, scheduledContent: 0, views: 0, aiCostUsd: 0 };
   const ws = uuidArray(workspaceIds);
   const [r] = (await db().execute(sql`

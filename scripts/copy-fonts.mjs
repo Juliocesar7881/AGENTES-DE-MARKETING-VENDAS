@@ -12,7 +12,7 @@ const engineDir = join(root, "packages", "video-engine");
 const targets = [join(engineDir, "public", "fonts"), join(root, "apps", "web", "public", "video-fonts")];
 
 const FONTS = {
-  inter: [400, 600, 700, 800],
+  inter: [400, 500, 600, 700, 800],
   montserrat: [400, 600, 700, 800],
   poppins: [400, 600, 700, 800],
   "bebas-neue": [400],

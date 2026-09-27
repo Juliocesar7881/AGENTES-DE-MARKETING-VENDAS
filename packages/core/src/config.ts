@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { join, resolve } from "node:path";
-import { loadEncryptionKey } from "@revenueos/shared/server";
+import { ensureRootEnv, findRepoRoot as findWorkspaceRoot, loadEncryptionKey } from "@revenueos/shared/server";
 
 /** Central, validated view of environment configuration (server/worker only). */
 export interface CoreConfig {
@@ -21,6 +21,7 @@ let cached: CoreConfig | null = null;
 
 export function getConfig(): CoreConfig {
   if (cached) return cached;
+  ensureRootEnv();
   const env = (process.env.NODE_ENV === "production" ? "production" : process.env.NODE_ENV === "test" ? "test" : "development") as CoreConfig["env"];
   const dataDir = resolve(process.env.REVENUEOS_DATA_DIR ?? join(findRepoRoot(), ".data"));
   cached = {
@@ -44,8 +45,8 @@ export function resetConfigCache(): void {
 }
 
 function findRepoRoot(): string {
-  // packages/core/src → repo root
-  return resolve(new URL(".", import.meta.url).pathname, "..", "..", "..");
+  // Bundlers (Next.js) relocate this file, so prefer walking up from the working directory.
+  return findWorkspaceRoot() ?? resolve(new URL(".", import.meta.url).pathname, "..", "..", "..");
 }
 
 /** Derives a purpose-specific signing key from APP_ENCRYPTION_KEY (no extra env var needed). */

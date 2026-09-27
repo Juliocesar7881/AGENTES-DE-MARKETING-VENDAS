@@ -33,3 +33,6 @@ export * from "./website/analyzer";
 export * from "./demo/data";
 export * from "./demo/seed";
 export * from "./demo/simulate";
+export * from "./domain/auth";
+export * from "./domain/connections";
+export * from "./domain/admin";

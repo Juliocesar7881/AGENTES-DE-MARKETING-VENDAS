@@ -1,0 +1,116 @@
+import { Film, Search } from "lucide-react";
+import Link from "next/link";
+import { and, contents, desc, eq, ilike, inArray, or, sql, withUser } from "@revenueos/database";
+import { Poster } from "@/components/content/poster";
+import { PlatformIcon } from "@/components/platform-icon";
+import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/misc";
+import { CONTENT_STATUS } from "@/lib/status";
+import { cn, dateTime } from "@/lib/utils";
+import { signedUrls } from "@/server/files";
+import { requireWorkspace } from "@/server/session";
+
+const FILTERS = {
+  all: { label: "All", statuses: null },
+  production: { label: "In production", statuses: ["IDEA", "PLANNING", "SCRIPTING", "GENERATING", "READY_TO_RENDER", "RENDERING", "RENDERED"] },
+  ready: { label: "Ready", statuses: ["READY"] },
+  scheduled: { label: "Scheduled", statuses: ["SCHEDULED", "PUBLISHING"] },
+  published: { label: "Published", statuses: ["PUBLISHED"] },
+  failed: { label: "Failed", statuses: ["FAILED"] },
+  archived: { label: "Archived", statuses: ["ARCHIVED"] },
+} as const;
+
+export default async function ContentStudio({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ f?: string; status?: string; q?: string }> }) {
+  const { slug } = await params;
+  const sp = await searchParams;
+  const { user, ws } = await requireWorkspace(slug);
+  const key = (sp.status === "FAILED" ? "failed" : sp.f && sp.f in FILTERS ? sp.f : "all") as keyof typeof FILTERS;
+  const filter = FILTERS[key];
+  const q = (sp.q ?? "").trim().slice(0, 100);
+
+  const { rows, counts } = await withUser(user.id, async (tx) => {
+    const conds = [eq(contents.workspaceId, ws.id)];
+    if (filter.statuses) conds.push(inArray(contents.status, [...filter.statuses]));
+    else conds.push(sql`${contents.status} <> 'ARCHIVED'`);
+    if (q) conds.push(or(ilike(contents.title, `%${q}%`), ilike(contents.hook, `%${q}%`))!);
+    const rows = await tx
+      .select({
+        c: contents,
+        thumb: sql<string | null>`(SELECT vr.thumbnail_key FROM video_renders vr WHERE vr.content_id = "contents"."id" AND vr.status = 'COMPLETED' AND vr.thumbnail_key IS NOT NULL ORDER BY vr.created_at DESC LIMIT 1)`,
+        rendered: sql<string | null>`(SELECT vr.status FROM video_renders vr WHERE vr.content_id = "contents"."id" ORDER BY vr.created_at DESC LIMIT 1)`,
+        leads: sql<number>`(SELECT count(*)::int FROM leads l WHERE l.source_content_id = "contents"."id")`,
+        revenue: sql<number>`(SELECT coalesce(sum(p.amount_cents),0)::int FROM payments p WHERE p.content_id = "contents"."id" AND p.status = 'APPROVED')`,
+      })
+      .from(contents)
+      .where(and(...conds))
+      .orderBy(sql`CASE WHEN ${contents.status} = 'SCHEDULED' THEN 0 ELSE 1 END`, sql`${contents.scheduledFor} ASC NULLS LAST`, desc(contents.createdAt))
+      .limit(120);
+    const counts = await tx.select({ status: contents.status, n: sql<number>`count(*)::int` }).from(contents).where(eq(contents.workspaceId, ws.id)).groupBy(contents.status);
+    return { rows, counts };
+  });
+  const thumbs = await signedUrls(rows.map((r) => r.thumb));
+  const countFor = (k: keyof typeof FILTERS) => {
+    const f = FILTERS[k];
+    return counts.filter((c) => (f.statuses ? (f.statuses as readonly string[]).includes(c.status) : c.status !== "ARCHIVED")).reduce((s, c) => s + c.n, 0);
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-1">
+          {(Object.keys(FILTERS) as (keyof typeof FILTERS)[]).map((k) => (
+            <Link
+              key={k}
+              href={`/w/${slug}/content?f=${k}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              className={cn("inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground", key === k && "border-border bg-card text-foreground shadow-card")}
+            >
+              {FILTERS[k].label}
+              <span className="tabular text-[11px] text-subtle">{countFor(k)}</span>
+            </Link>
+          ))}
+        </div>
+        <form className="relative w-full md:w-64" action={`/w/${slug}/content`}>
+          <input type="hidden" name="f" value={key} />
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-subtle" />
+          <input name="q" defaultValue={q} placeholder="Search hooks and titles" className="h-8 w-full rounded-md border border-input bg-card pr-3 pl-8 text-sm outline-none focus:border-primary" />
+        </form>
+      </div>
+      {rows.length === 0 ? (
+        <EmptyState icon={Film} title="No content here yet" description="Use “New content” above, or let the autopilot fill the buffer. Videos are generated by the Creative agent and rendered by the local worker." />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {rows.map(({ c, rendered, leads, revenue }, i) => (
+            <Link key={c.id} href={`/w/${slug}/content/${c.id}`} className="group">
+              <Poster src={thumbs[i]} hook={c.hook ?? c.title} color={ws.color} format={c.format} label={rendered === "SIMULATED" ? "simulated render" : null} className="ring-1 ring-border transition group-hover:ring-border-strong" />
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="tabular text-[11px] text-subtle">#{c.number}</span>
+                  <StatusBadge map={CONTENT_STATUS} value={c.status} />
+                  {c.qaStatus === "WARNINGS" ? <Badge tone="warning">QA</Badge> : null}
+                  {c.isDemo ? <Badge tone="info">Demo</Badge> : null}
+                </div>
+                <div className="line-clamp-2 text-[13px] leading-snug font-medium group-hover:underline">{c.hook ?? c.title}</div>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="truncate">{c.scheduledFor ? dateTime(c.scheduledFor, ws.timezone) : c.templateId?.replace(/_/g, " ").toLowerCase() ?? "—"}</span>
+                  <span className="flex -space-x-1">
+                    {c.targetPlatforms.slice(0, 3).map((p) => (
+                      <PlatformIcon key={p} platform={p} size={14} />
+                    ))}
+                  </span>
+                </div>
+                {c.status === "PUBLISHED" ? (
+                  <div className="text-[11px] text-muted-foreground">
+                    {leads} lead{leads === 1 ? "" : "s"} · <span className="text-success">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: ws.currency }).format(revenue / 100)}</span>
+                  </div>
+                ) : c.status === "FAILED" && c.failureReason ? (
+                  <div className="line-clamp-2 text-[11px] text-danger">{c.failureReason}</div>
+                ) : null}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

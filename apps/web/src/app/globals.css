@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Inter (OFL) served locally — no external font requests. */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("/video-fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("/video-fonts/inter-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("/video-fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("/video-fonts/inter-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --background: #f7f8fa;
+  --foreground: #0f1115;
+  --card: #ffffff;
+  --card-elevated: #ffffff;
+  --popover: #ffffff;
+  --muted: #f1f3f6;
+  --muted-foreground: #5e6573;
+  --subtle: #8a91a0;
+  --border: #e4e7ec;
+  --border-strong: #d0d5dd;
+  --input: #e4e7ec;
+  --primary: #6d5bff;
+  --primary-hover: #5b48f5;
+  --primary-foreground: #ffffff;
+  --primary-soft: #efedff;
+  --success: #079455;
+  --success-soft: #e7f8ef;
+  --warning: #dc6803;
+  --warning-soft: #fef4e6;
+  --danger: #d92d20;
+  --danger-soft: #fdecea;
+  --info: #1570ef;
+  --info-soft: #eaf2fe;
+  --ring: #6d5bff;
+  --sidebar: #fbfbfc;
+  --shadow-color: 220 20% 20%;
+  --chart-1: #6d5bff;
+  --chart-2: #12b76a;
+  --chart-3: #f79009;
+  --chart-4: #2e90fa;
+  --chart-5: #ee46bc;
+}
+
+.dark {
+  --background: #0a0b0f;
+  --foreground: #eceef2;
+  --card: #111318;
+  --card-elevated: #15181e;
+  --popover: #15181e;
+  --muted: #171a21;
+  --muted-foreground: #8a91a0;
+  --subtle: #636a78;
+  --border: #22262f;
+  --border-strong: #2e333d;
+  --input: #262a33;
+  --primary: #7c6cff;
+  --primary-hover: #8f81ff;
+  --primary-foreground: #ffffff;
+  --primary-soft: #1d1a36;
+  --success: #32d583;
+  --success-soft: #0f2a1d;
+  --warning: #fdb022;
+  --warning-soft: #2e2210;
+  --danger: #f97066;
+  --danger-soft: #331715;
+  --info: #53b1fd;
+  --info-soft: #0f2238;
+  --ring: #7c6cff;
+  --sidebar: #0d0e12;
+  --shadow-color: 0 0% 0%;
+  --chart-1: #8f81ff;
+  --chart-2: #32d583;
+  --chart-3: #fdb022;
+  --chart-4: #53b1fd;
+  --chart-5: #f670c7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-elevated: var(--card-elevated);
+  --color-popover: var(--popover);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility shadow-card {
+  box-shadow:
+    0 1px 2px hsl(var(--shadow-color) / 0.06),
+    0 1px 1px hsl(var(--shadow-color) / 0.04);
+}
+
+@utility shadow-pop {
+  box-shadow:
+    0 12px 32px -8px hsl(var(--shadow-color) / 0.35),
+    0 2px 6px hsl(var(--shadow-color) / 0.12);
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}

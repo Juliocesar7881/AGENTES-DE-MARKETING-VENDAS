@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { AuthorizationError } from "@revenueos/shared";
+import { env } from "@revenueos/shared/server";
 import * as schema from "./schema";
 
 export type Schema = typeof schema;
@@ -19,7 +20,7 @@ interface ClientState {
 const globalForDb = globalThis as unknown as { __revenueosDb?: ClientState };
 
 export function databaseUrl(): string {
-  const url = process.env.DATABASE_URL;
+  const url = env("DATABASE_URL");
   if (!url) {
     throw new Error("DATABASE_URL is not set. Copy .env.example to .env and point it at your Postgres/Supabase database.");
   }

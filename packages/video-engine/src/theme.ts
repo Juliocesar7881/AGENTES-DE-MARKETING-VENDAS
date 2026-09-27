@@ -1,6 +1,8 @@
 import type { FontFamily, TemplateId, TransitionKind, VideoSpec } from "@revenueos/shared/video-spec";
-import { fontStack, FONT_FILES } from "./fonts";
-import { computeLayout, contrastRatio, isDark, luminance, mix, readableOn, type MotionPreset, type SafeLayout } from "./utils";
+import { contrastRatio, isDark, luminance, mix, readableOn } from "./color";
+import { fontStack, FONT_FILES } from "./font-meta";
+import { computeLayout, type SafeLayout } from "./layout";
+import type { MotionPreset } from "./utils";
 
 export type Decor = "none" | "floating-cards" | "burst" | "grid" | "dots" | "orbs" | "quote" | "lines" | "stripes";
 export type BackgroundStyle = "mesh" | "gradient" | "solid" | "spotlight" | "grid" | "noise" | "letterbox" | "split-tone" | "vibrant";
