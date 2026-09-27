@@ -1,0 +1,45 @@
+{
+  "name": "revenueos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RevenueOS — autonomous revenue engine: multi-business content, video, CRM and sales automation powered by Claude + Remotion.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "postinstall": "node scripts/copy-fonts.mjs",
+    "dev": "node scripts/dev-all.mjs",
+    "dev:web": "pnpm --filter @revenueos/web dev",
+    "dev:worker": "pnpm --filter @revenueos/worker dev",
+    "build": "pnpm --filter @revenueos/web build",
+    "start": "pnpm --filter @revenueos/web start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "db:generate": "pnpm --filter @revenueos/database generate",
+    "db:migrate": "pnpm --filter @revenueos/database migrate",
+    "db:seed": "pnpm --filter @revenueos/database seed",
+    "db:reset": "pnpm --filter @revenueos/database reset",
+    "worker": "pnpm --filter @revenueos/worker start",
+    "worker:check": "pnpm --filter @revenueos/worker check",
+    "render": "pnpm --filter @revenueos/worker render",
+    "simulate": "pnpm --filter @revenueos/worker simulate",
+    "setup": "node scripts/setup.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.19.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.2"
+  }
+}

@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - "@remotion/compositor-linux-x64-gnu"
+  - "@remotion/compositor-linux-x64-musl"
+  - "@remotion/compositor-win32-x64-msvc"
+  - "@remotion/compositor-darwin-arm64"
+  - "@remotion/compositor-darwin-x64"

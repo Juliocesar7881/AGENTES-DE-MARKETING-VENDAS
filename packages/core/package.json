@@ -1,0 +1,23 @@
+{
+  "name": "@revenueos/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@revenueos/agents": "workspace:*",
+    "@revenueos/database": "workspace:*",
+    "@revenueos/providers": "workspace:*",
+    "@revenueos/shared": "workspace:*",
+    "node-html-parser": "^9.0.4",
+    "zod": "^4.6.5",
+    "@revenueos/video-engine": "workspace:*",
+    "sharp": "^0.35.5"
+  }
+}

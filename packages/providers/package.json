@@ -1,0 +1,22 @@
+{
+  "name": "@revenueos/providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ai": "./src/ai/index.ts",
+    "./social": "./src/social/index.ts",
+    "./messaging": "./src/messaging/index.ts",
+    "./payment": "./src/payment/index.ts",
+    "./storage": "./src/storage/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@revenueos/shared": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

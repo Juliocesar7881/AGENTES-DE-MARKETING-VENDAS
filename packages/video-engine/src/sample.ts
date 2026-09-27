@@ -1,0 +1,51 @@
+import type { VideoSpec } from "@revenueos/shared/video-spec";
+
+/** Sample VideoSpec used by Remotion Studio, the render smoke test and docs. */
+export const SAMPLE_SPEC: VideoSpec = {
+  schemaVersion: "1.0",
+  id: "sample-spec",
+  workspaceId: "sample-workspace",
+  contentId: "sample-content",
+  campaignId: null,
+  title: "Pequenos Passos — matrícula",
+  objective: "LEADS",
+  targetAudience: "Pais de crianças de 2 a 6 anos",
+  templateId: "saas-modern",
+  format: "9:16",
+  width: 1080,
+  height: 1920,
+  fps: 30,
+  duration: 12,
+  hook: { text: "Seu filho aprende brincando?", type: "QUESTION" },
+  scenes: [
+    { id: "s1", start: 0, duration: 2.5, type: "HOOK", headline: "Seu filho aprende brincando?", emphasis: ["brincando"], animation: "kinetic", layout: "center", background: { type: "gradient" }, effects: ["spotlight"] },
+    { id: "s2", start: 2.5, duration: 3, type: "PROBLEM", headline: "Rotina corrida, pouco tempo de qualidade", body: "E a dúvida se a escola desenvolve o potencial dele.", animation: "slide-left", layout: "center", background: { type: "solid", colors: ["#141432"] } },
+    { id: "s3", start: 5.5, duration: 3.5, type: "FEATURE", headline: "Turmas reduzidas", body: "Atenção individual para cada criança.", animation: "pop", layout: "card-stack", background: { type: "gradient" } },
+    { id: "s4", start: 9, duration: 3, type: "CTA", headline: "Agende uma visita", body: "@pequenospassos", animation: "pop", layout: "center", background: { type: "gradient" }, effects: ["glow"] },
+  ],
+  captions: [
+    { start: 2.6, end: 5.4, text: "Pais sem tempo também merecem tranquilidade" },
+    { start: 5.6, end: 8.9, text: "Cada criança acompanhada de perto" },
+  ],
+  transitions: [
+    { afterScene: 0, type: "slide-up", durationSec: 0.4 },
+    { afterScene: 1, type: "slide-up", durationSec: 0.4 },
+    { afterScene: 2, type: "fade", durationSec: 0.4 },
+  ],
+  soundtrack: null,
+  assets: [],
+  brand: {
+    name: "Pequenos Passos",
+    logoAssetId: null,
+    primaryColor: "#FF7A59",
+    secondaryColor: "#7C6CFF",
+    accentColor: "#FFD166",
+    backgroundColor: "#16163A",
+    textColor: "#FFFFFF",
+    fontHeading: "Poppins",
+    fontBody: "Inter",
+    handle: "pequenospassos",
+  },
+  cta: { text: "Agende uma visita", buttonLabel: "Chamar no WhatsApp", type: "WHATSAPP" },
+  metadata: { generator: "human", createdAt: "2026-01-01T00:00:00.000Z", hookType: "QUESTION", ctaType: "WHATSAPP", language: "pt-BR", captionStyle: "block", angle: "Pais sem tempo" },
+};
