@@ -174,3 +174,35 @@ export async function analyzeWebsiteAction(url: string, workspaceId?: string | n
     return analyzeWebsite(url, { useAI: true, workspace: ws });
   });
 }
+
+export async function deleteAssetAction(workspaceId: string, assetId: string) {
+  return run(async () => {
+    const { user, ws } = await member(workspaceId);
+    const { brandAssets, brandKits, and, eq, withUser } = await import("@revenueos/database");
+    const [a] = await withUser(user.id, (tx) => tx.select().from(brandAssets).where(and(eq(brandAssets.id, assetId), eq(brandAssets.workspaceId, workspaceId))).limit(1));
+    if (!a) throw new AuthorizationError("Asset not found.");
+    await withUser(user.id, async (tx) => {
+      await tx.update(brandKits).set({ logoAssetId: null }).where(and(eq(brandKits.workspaceId, workspaceId), eq(brandKits.logoAssetId, assetId)));
+      await tx.update(brandKits).set({ iconAssetId: null }).where(and(eq(brandKits.workspaceId, workspaceId), eq(brandKits.iconAssetId, assetId)));
+      await tx.delete(brandAssets).where(eq(brandAssets.id, assetId));
+    });
+    const { storage } = await import("@revenueos/core");
+    await storage().delete(a.storageKey).catch(() => undefined);
+    if (a.thumbnailKey) await storage().delete(a.thumbnailKey).catch(() => undefined);
+    refresh(ws.slug);
+    return null;
+  }, "Asset deleted");
+}
+
+/** Captures a website screenshot on the local worker (SSRF-guarded browser) and adds it as a brand asset. */
+export async function screenshotAction(workspaceId: string, url: string) {
+  return run(async () => {
+    const { ws } = await member(workspaceId);
+    const { assertPublicUrl } = await import("@revenueos/shared/server");
+    await assertPublicUrl(url);
+    const { enqueueJob } = await import("@revenueos/core");
+    await enqueueJob({ type: "WEBSITE_SCREENSHOT", workspaceId, payload: { url }, origin: "HUMAN", idempotencyKey: `screenshot:${workspaceId}:${url}:${new Date().toISOString().slice(0, 13)}` });
+    refresh(ws.slug);
+    return null;
+  }, "Screenshot queued on the local worker");
+}

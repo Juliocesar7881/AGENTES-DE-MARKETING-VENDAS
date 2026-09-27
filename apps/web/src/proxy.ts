@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "rvos_session";
 /** Pages reachable without a session (API routes enforce their own auth). */
-const PUBLIC_PREFIXES = ["/login", "/signup", "/l/", "/r/", "/legal"];
+const PUBLIC_PREFIXES = ["/login", "/signup", "/l/", "/r/", "/demo/checkout/", "/checkout/", "/legal"];
 
 /**
  * Runs before every page: per-request CSP nonce, and a cheap redirect to

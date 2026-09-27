@@ -230,8 +230,8 @@ export function webhookUrls(workspaceId: string) {
   return {
     whatsapp: `${base}/api/webhooks/whatsapp`,
     instagram: `${base}/api/webhooks/instagram`,
-    mercadopago: `${base}/api/webhooks/payments/mercadopago/${workspaceId}`,
-    stripe: `${base}/api/webhooks/payments/stripe/${workspaceId}`,
+    mercadopago: `${base}/api/webhooks/mercadopago/${workspaceId}`,
+    stripe: `${base}/api/webhooks/stripe/${workspaceId}`,
   };
 }
 

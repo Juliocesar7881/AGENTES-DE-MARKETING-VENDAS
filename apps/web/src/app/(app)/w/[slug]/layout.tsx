@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { and, conversations, count, eq, gt, withUser } from "@revenueos/database";
 import { WorkspaceHeaderActions } from "@/components/workspace/ws-header-actions";
@@ -6,6 +7,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { MODE } from "@/lib/status";
 import { requireWorkspace } from "@/server/session";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const { ws } = await requireWorkspace(slug);
+  return { title: ws.name };
+}
 
 export default async function WorkspaceLayout({ children, params }: { children: ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;

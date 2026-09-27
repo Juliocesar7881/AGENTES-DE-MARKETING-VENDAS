@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTheme } from "@/components/theme";
 import { useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { useState, useTransition, type ReactNode } from "react";
+import { Suspense, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { ShellData } from "@/server/queries";
 import { logoutAction } from "@/server/actions/auth";
@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, Kbd } from "@/components/ui/misc";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ago, cn } from "@/lib/utils";
+import { Flash } from "@/components/flash";
 import { CommandPalette } from "./command-palette";
 import { Notifications } from "./notifications";
 import { Sidebar } from "./sidebar";
@@ -42,6 +43,9 @@ export function AppShell({ data, children }: { data: ShellData; children: ReactN
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8">{children}</main>
       </div>
       <CommandPalette data={data} />
+      <Suspense>
+        <Flash />
+      </Suspense>
     </div>
   );
 }

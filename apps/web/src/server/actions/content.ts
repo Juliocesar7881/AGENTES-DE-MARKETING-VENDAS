@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { approveContent, archiveContent, enqueueJob, publishNow, regenerateContentHook, rescheduleContent, retryPost, saveEditedSpec, scheduleContent, unscheduleContent, currentSpec, setContentStatus } from "@revenueos/core";
 import { contents, eq, socialPosts, withUser, workspaces } from "@revenueos/database";
-import { AppError, AuthorizationError } from "@revenueos/shared";
+import { AppError, AuthorizationError, zonedToUtc } from "@revenueos/shared";
 import { run } from "../action";
 import { kick } from "../runner";
 import { requireUser } from "../session";
@@ -139,4 +139,22 @@ export async function retryPostAction(socialPostId: string) {
     revalidatePath("/", "layout");
     return null;
   }, "Retrying publication");
+}
+
+/** Calendar drag-and-drop: the drop target is a local date + time in the business's time zone. */
+export async function scheduleAtLocalAction(contentId: string, localDate: string, localTime: string) {
+  return run(async () => {
+    const { user, c, slug } = await owned(contentId);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(localTime)) throw new AppError({ code: "BAD_DATE", userMessage: "Invalid date or time." });
+    const [ws] = await withUser(user.id, (tx) => tx.select({ tz: workspaces.timezone }).from(workspaces).where(eq(workspaces.id, c.workspaceId)).limit(1));
+    const at = zonedToUtc(localDate, localTime, ws?.tz ?? "America/Sao_Paulo");
+    if (c.status === "SCHEDULED") await rescheduleContent(contentId, at, user.id);
+    else {
+      const r = await scheduleContent(contentId, "HUMAN", { at, userId: user.id });
+      if (!r.scheduled) throw new AppError({ code: "NOT_SCHEDULED", userMessage: `Could not schedule: ${r.reason}.` });
+    }
+    kick([c.workspaceId]);
+    refresh(slug, contentId);
+    return null;
+  }, "Scheduled");
 }

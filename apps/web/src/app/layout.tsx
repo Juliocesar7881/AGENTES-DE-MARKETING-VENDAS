@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import type { ReactNode } from "react";
 import { Providers } from "@/components/providers";
 import { THEME_SCRIPT } from "@/lib/theme-script";
@@ -22,10 +23,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-      </head>
       <body>
+        <Script id="rvos-theme" strategy="beforeInteractive" nonce={nonce}>
+          {THEME_SCRIPT}
+        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>
