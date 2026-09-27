@@ -138,7 +138,7 @@ export default async function HelpConnections() {
       platform: "MOCK",
       title: "Scheduler on Vercel",
       summary: "Self-hosted and local installs run the scheduler automatically. On Vercel, call the tick endpoint every minute.",
-      steps: ["Set CRON_SECRET in the Vercel project.", "Add a cron (vercel.json is included) or use Supabase pg_cron / any uptime service to call the URL below with the header Authorization: Bearer <CRON_SECRET>.", "The local worker also runs the scheduler while it is online."],
+      steps: ["Set CRON_SECRET in the Vercel project.", "The included apps/web/vercel.json runs a daily tick (safe on every plan). On Vercel Pro change its schedule to every minute; otherwise use Supabase pg_cron + pg_net (SQL in docs/deploy.md) or any uptime service to call the URL below with the header Authorization: Bearer <CRON_SECRET>.", "The local worker also runs the scheduler while it is online."],
       limits: ["Vercel Hobby crons run at most once per day — use Supabase pg_cron + pg_net or an external pinger for per-minute ticks."],
       copy: [{ label: "Tick URL", value: `${base}/api/cron/tick` }],
       links: [],
