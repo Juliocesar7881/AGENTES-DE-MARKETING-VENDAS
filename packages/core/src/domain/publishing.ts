@@ -177,7 +177,7 @@ export async function publishSocialPost(socialPostId: string, ctx: { jobId: stri
         severity: "ERROR",
         title: `${PLATFORM_LABELS[account.platform]} needs reconnection — ${ws.name}`,
         body: ser.userMessage,
-        link: `/w/${ws.slug}/integrations`,
+        link: `/w/${ws.slug}/connections`,
         dedupeKey: `token:${account.id}:${now().toISOString().slice(0, 13)}`,
       });
       throw new AppError({ code: ser.code, userMessage: ser.userMessage, retryable: false, cause: e });

@@ -204,7 +204,7 @@ export async function createSocialPosts(ws: Workspace, c: Content, scheduledFor:
       severity: "WARNING",
       title: `Connect ${missing.map((m) => PLATFORM_LABELS[m]).join(", ")} for ${ws.name}`,
       body: "Content is scheduled only for connected accounts. Connect the missing networks in Integrations.",
-      link: `/w/${ws.slug}/integrations`,
+      link: `/w/${ws.slug}/connections`,
       dedupeKey: `missing_accounts:${ws.id}:${missing.sort().join(",")}:${localDateString(now(), ws.timezone)}`,
     });
   }

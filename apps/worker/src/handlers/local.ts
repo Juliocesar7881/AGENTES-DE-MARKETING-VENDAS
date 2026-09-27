@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { db as coreDb, notify, recordActivity, storage, type HandlerContext, type JobRow } from "@revenueos/core";
 import { and, approvalRequests, brandAssets, contents, customCompositions, eq, isNotNull, isNull, videoRenders, workspaces } from "@revenueos/database";
 import { AppError } from "@revenueos/shared";
-import { assertPublicUrl, isPrivateAddress } from "@revenueos/shared/server";
+import { assertPublicUrl, env, isPrivateAddress } from "@revenueos/shared/server";
 import { locateFfmpeg, probeVideo, renderCompositionTest, runBinary, validateComposition } from "@revenueos/video-engine/render";
 import type * as PlaywrightModule from "playwright-core";
 import { loadWorkerConfig } from "../config";
@@ -98,7 +98,7 @@ export async function screenshotHandler(job: JobRow): Promise<Record<string, unk
   } catch {
     throw new AppError({ code: "SCREENSHOT_UNAVAILABLE", userMessage: "Website screenshots need playwright-core on the worker (installed by setup-worker.ps1).", retryable: false });
   }
-  const executablePath = process.env.SCREENSHOT_BROWSER_EXECUTABLE || process.env.REMOTION_BROWSER_EXECUTABLE || undefined;
+  const executablePath = env("SCREENSHOT_BROWSER_EXECUTABLE") || env("REMOTION_BROWSER_EXECUTABLE") || undefined;
   const browser = await chromium.launch({ headless: true, executablePath, channel: executablePath ? undefined : process.platform === "win32" ? "msedge" : "chrome" });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });

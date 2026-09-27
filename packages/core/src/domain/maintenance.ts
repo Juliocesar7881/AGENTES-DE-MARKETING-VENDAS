@@ -102,7 +102,7 @@ export async function runTokenHealth(ws: Workspace): Promise<Record<string, unkn
           await storeSocialCredentials(acc, { ...refreshed, extra: refreshed.extra ?? creds.extra });
           creds = { ...refreshed, extra: refreshed.extra ?? creds.extra };
         } else {
-          await notify({ workspaceId: ws.id, type: "TOKEN_EXPIRED", severity: "WARNING", title: `${PLATFORM_LABELS[acc.platform]} connection expires soon`, body: `@${acc.username} expires on ${creds.expiresAt.toISOString().slice(0, 10)}. Reconnect to avoid interruptions.`, link: `/w/${ws.slug}/integrations`, dedupeKey: `expiring:${acc.id}:${creds.expiresAt.toISOString().slice(0, 10)}` });
+          await notify({ workspaceId: ws.id, type: "TOKEN_EXPIRED", severity: "WARNING", title: `${PLATFORM_LABELS[acc.platform]} connection expires soon`, body: `@${acc.username} expires on ${creds.expiresAt.toISOString().slice(0, 10)}. Reconnect to avoid interruptions.`, link: `/w/${ws.slug}/connections`, dedupeKey: `expiring:${acc.id}:${creds.expiresAt.toISOString().slice(0, 10)}` });
         }
       }
       const test = await provider.validateConnection(creds, accountInfo(acc));
@@ -113,7 +113,7 @@ export async function runTokenHealth(ws: Workspace): Promise<Record<string, unkn
         .where(eq(socialAccounts.id, acc.id));
       if (status === "EXPIRED") {
         problems++;
-        await notify({ workspaceId: ws.id, type: "TOKEN_EXPIRED", severity: "ERROR", title: `${PLATFORM_LABELS[acc.platform]} disconnected — ${ws.name}`, body: test.actionRequired?.reason ?? "Reconnect the account.", link: `/w/${ws.slug}/integrations`, dedupeKey: `expired:${acc.id}:${localDateString(now(), ws.timezone)}` });
+        await notify({ workspaceId: ws.id, type: "TOKEN_EXPIRED", severity: "ERROR", title: `${PLATFORM_LABELS[acc.platform]} disconnected — ${ws.name}`, body: test.actionRequired?.reason ?? "Reconnect the account.", link: `/w/${ws.slug}/connections`, dedupeKey: `expired:${acc.id}:${localDateString(now(), ws.timezone)}` });
       } else ok++;
     } catch (e) {
       problems++;

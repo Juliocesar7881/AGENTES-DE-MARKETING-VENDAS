@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import { env } from "@revenueos/shared/server";
 
 /**
  * Locates ffmpeg/ffprobe. Order: FFMPEG_PATH/FFPROBE_PATH env → the binaries
@@ -38,8 +39,10 @@ let cached: { ffmpeg: string; ffprobe: string; source: string } | null = null;
 export function locateFfmpeg(): { ffmpeg: string; ffprobe: string; source: string } {
   if (cached) return cached;
   const exe = process.platform === "win32" ? ".exe" : "";
-  if (process.env.FFMPEG_PATH && process.env.FFPROBE_PATH) {
-    cached = { ffmpeg: process.env.FFMPEG_PATH, ffprobe: process.env.FFPROBE_PATH, source: "env" };
+  const envFfmpeg = env("FFMPEG_PATH");
+  const envFfprobe = env("FFPROBE_PATH");
+  if (envFfmpeg && envFfprobe) {
+    cached = { ffmpeg: envFfmpeg, ffprobe: envFfprobe, source: "env" };
     return cached;
   }
   const dir = compositorDir();

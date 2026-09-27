@@ -253,7 +253,7 @@ export async function runSalesReply(opts: { conversationId: string; jobId: strin
           }
         } catch (e) {
           checkoutNote = serializeError(e).userMessage;
-          await notify({ workspaceId: ws.id, type: "ACTION_REQUIRED", severity: "WARNING", title: "Could not create checkout", body: checkoutNote, link: `/w/${ws.slug}/integrations`, dedupeKey: `checkout_fail:${lead.id}:${now().toISOString().slice(0, 13)}` });
+          await notify({ workspaceId: ws.id, type: "ACTION_REQUIRED", severity: "WARNING", title: "Could not create checkout", body: checkoutNote, link: `/w/${ws.slug}/connections`, dedupeKey: `checkout_fail:${lead.id}:${now().toISOString().slice(0, 13)}` });
         }
       }
     }

@@ -105,12 +105,14 @@ export class JobRunner {
     for (;;) {
       const n = await this.tick({ workspaceIds: opts.workspaceIds });
       total += n;
-      if (this.running.size > 0) await Promise.race(this.running);
+      // Stop only when a fresh claim finds nothing AND nothing is running: a job
+      // that just finished may have enqueued the next step of the cycle.
       if (n === 0 && this.running.size === 0) break;
       if (Date.now() > deadline || (opts.maxJobs && total >= opts.maxJobs)) {
         await Promise.allSettled([...this.running]);
         break;
       }
+      if (this.running.size > 0) await Promise.race(this.running);
     }
     return total;
   }

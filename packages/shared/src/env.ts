@@ -4,7 +4,8 @@ import { dirname, join, resolve } from "node:path";
 /**
  * RevenueOS keeps ONE .env at the repository root, shared by the dashboard,
  * the worker and the scripts. This loader finds it (walking up to the folder
- * with pnpm-workspace.yaml) and fills only variables that are not already set,
+ * with pnpm-workspace.yaml) and fills only variables that are not already set (an
+ * explicitly empty variable counts as set, so it can disable a .env value),
  * so real environment variables (Vercel, CI, Windows DPAPI launcher) always win.
  * It is called lazily wherever configuration is read, which also survives
  * frameworks that reset process.env during hot reload.
@@ -41,11 +42,11 @@ export function ensureRootEnv(): void {
   const root = findRepoRoot();
   if (!root) return;
   for (const file of [".env.local", ".env"]) {
-    const p = join(root, file);
-    if (!existsSync(p)) continue;
+    const p = join(/*turbopackIgnore: true*/ root, file);
+    if (!existsSync(/*turbopackIgnore: true*/ p)) continue;
     try {
-      for (const [k, v] of Object.entries(parseDotEnv(readFileSync(p, "utf8")))) {
-        if (process.env[k] === undefined || process.env[k] === "") process.env[k] = v;
+      for (const [k, v] of Object.entries(parseDotEnv(readFileSync(/*turbopackIgnore: true*/ p, "utf8")))) {
+        if (process.env[k] === undefined) process.env[k] = v;
       }
     } catch {
       /* unreadable env file: ignore */

@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderStill, selectComposition } from "@remotion/renderer";
+import { env } from "@revenueos/shared/server";
 import { SAMPLE_SPEC } from "../sample";
 import { PUBLIC_DIR } from "./bundle";
 
@@ -41,7 +42,7 @@ registerRoot(() => <Composition id="Candidate" component={Candidate as any} widt
       },
     }),
   });
-  const browserExecutable = opts.browserExecutable ?? process.env.REMOTION_BROWSER_EXECUTABLE ?? null;
+  const browserExecutable = opts.browserExecutable ?? env("REMOTION_BROWSER_EXECUTABLE") ?? null;
   const composition = await selectComposition({ serveUrl, id: "Candidate", inputProps: { spec: SAMPLE_SPEC, assets: {} }, browserExecutable, timeoutInMilliseconds: opts.timeoutMs ?? 30_000, logLevel: "error" });
   let frames = 0;
   for (const frame of [0, 60, 119]) {

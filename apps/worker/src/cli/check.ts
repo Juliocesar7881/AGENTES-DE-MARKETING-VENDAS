@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { configureCore, resolveAI, storage } from "@revenueos/core";
 import { closeDb } from "@revenueos/database";
 import { serializeError } from "@revenueos/shared";
+import { env } from "@revenueos/shared/server";
 import { SAMPLE_SPEC } from "@revenueos/video-engine";
 import { renderVideo, validateVideo } from "@revenueos/video-engine/render";
 import { loadDotEnv, loadWorkerConfig, REPO_ROOT } from "../config";
@@ -65,7 +66,7 @@ async function run(): Promise<void> {
 
   // Remotion's headless Chrome: downloaded once into node_modules (official Remotion mechanism).
   let browserOk = false;
-  const exe = process.env.REMOTION_BROWSER_EXECUTABLE;
+  const exe = env("REMOTION_BROWSER_EXECUTABLE");
   if (exe) {
     browserOk = existsSync(exe);
     add({ name: "Render browser", required: true, ok: browserOk, detail: browserOk ? `custom: ${exe}` : `REMOTION_BROWSER_EXECUTABLE not found: ${exe}`, fix: "Remove REMOTION_BROWSER_EXECUTABLE to let Remotion download its own browser" });

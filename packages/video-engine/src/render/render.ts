@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { makeCancelSignal, renderMedia, renderStill, selectComposition, type ChromiumOptions } from "@remotion/renderer";
+import { env } from "@revenueos/shared/server";
 import type { VideoSpec } from "@revenueos/shared/video-spec";
 import { COMPOSITION_ID } from "../remotion/Root";
 import type { RevenueOSVideoProps } from "../Video";
@@ -36,7 +37,7 @@ export interface RenderVideoResult {
 }
 
 function chromiumOptions(): ChromiumOptions {
-  const gl = process.env.REMOTION_GL as ChromiumOptions["gl"] | undefined;
+  const gl = env("REMOTION_GL") as ChromiumOptions["gl"] | undefined;
   return { gl: gl ?? null, enableMultiProcessOnLinux: true };
 }
 
@@ -65,7 +66,7 @@ export async function renderVideo(opts: RenderVideoOptions): Promise<RenderVideo
       if (opts.soundtrackFile) assets.__soundtrack = `${server.baseUrl}/${opts.soundtrackFile.split(/[\\/]/).map(encodeURIComponent).join("/")}`;
     }
     const inputProps: RevenueOSVideoProps = { spec: opts.spec, assets };
-    const browserExecutable = opts.browserExecutable ?? process.env.REMOTION_BROWSER_EXECUTABLE ?? null;
+    const browserExecutable = opts.browserExecutable ?? env("REMOTION_BROWSER_EXECUTABLE") ?? null;
     const composition = await selectComposition({
       serveUrl,
       id: COMPOSITION_ID,
