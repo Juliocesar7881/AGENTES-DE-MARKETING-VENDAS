@@ -118,7 +118,7 @@ export async function simulateDay(opts: { workspaceIds: string[]; contentsPerWor
     const turn = async (lead: (typeof simulatedLeads)[number], text: string) => {
       await processInboundMessage({ workspaceId: ws.id, channel: "MOCK", from: lead.from, text, externalMessageId: `sim_${randomUUID()}`, origin: "SIMULATION" });
     };
-    const askers = simulatedLeads.filter((l) => r() < 0.75);
+    const askers = simulatedLeads.filter(() => r() < 0.75);
     for (const l of askers) await turn(l, ["Quanto custa?", "Qual o valor?", "E o preço?"][Math.floor(r() * 3)]!);
     for (const l of simulatedLeads.filter((x) => !askers.includes(x)).slice(0, 1)) await turn(l, "Por favor, pare de me mandar mensagens");
     await runner.drain({ workspaceIds: [ws.id], timeoutMs: 90_000 });

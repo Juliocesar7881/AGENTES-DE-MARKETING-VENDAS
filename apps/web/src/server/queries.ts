@@ -49,10 +49,13 @@ export const shellData = cache(async () => {
     }),
   ]);
   const online = workers.find((w) => w.online) ?? null;
+  // The demo account's "Stop all" pauses only its DEMO businesses (the global stop is admin-only).
+  const demoStopped = user.isDemo && workspaces.length > 0 && workspaces.every((w) => w.status === "PAUSED");
   return {
     user,
     workspaces: workspaces.map((w) => ({ id: w.id, slug: w.slug, name: w.name, color: w.color, environment: w.environment, status: w.status, operatingMode: w.operatingMode })),
-    emergencyStop: settings.emergencyStop,
+    emergencyStop: settings.emergencyStop || demoStopped,
+    emergencyScope: settings.emergencyStop ? ("GLOBAL" as const) : demoStopped ? ("DEMO" as const) : null,
     worker: online ? { online: true, paused: online.paused, name: online.name, jobs: online.currentJobs.length } : { online: false, paused: false, name: workers[0]?.name ?? null, jobs: 0, lastSeen: workers[0]?.lastHeartbeatAt ?? null },
     unread: counts.unread,
     approvals: counts.approvals,

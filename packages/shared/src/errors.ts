@@ -81,7 +81,11 @@ export function serializeError(e: unknown): SerializedError {
       retryable: e.retryable,
     };
   }
-  const message = e instanceof Error ? e.message : String(e);
+  // Query errors from the ORM carry the bound parameters (may be personal data) and
+  // hide the real reason in `cause` — drop the former, surface the latter.
+  let message = (e instanceof Error ? e.message : String(e)).replace(/\nparams: [\s\S]*$/, "\nparams: [redacted]");
+  const cause = e instanceof Error && e.cause instanceof Error ? e.cause.message : null;
+  if (cause && !message.includes(cause)) message = `${message} — cause: ${cause}`;
   return {
     code: "UNEXPECTED",
     userMessage: "Something unexpected went wrong. Details are available below.",

@@ -38,7 +38,7 @@ export function AppShell({ data, children }: { data: ShellData; children: ReactN
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
       <div className="flex min-w-0 flex-1 flex-col">
-        {data.emergencyStop ? <EmergencyBanner /> : null}
+        {data.emergencyStop ? <EmergencyBanner scope={data.emergencyScope} /> : null}
         <TopBar data={data} onMenu={() => setMobileOpen(true)} />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8">{children}</main>
       </div>
@@ -50,13 +50,15 @@ export function AppShell({ data, children }: { data: ShellData; children: ReactN
   );
 }
 
-function EmergencyBanner() {
+function EmergencyBanner({ scope }: { scope: ShellData["emergencyScope"] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
     <div className="flex items-center justify-center gap-3 bg-danger px-4 py-2 text-sm font-medium text-white">
       <OctagonX className="size-4" />
-      EMERGENCY STOP is active — no publishing, messages or checkouts are being sent. Payments and attribution keep running.
+      {scope === "DEMO"
+        ? "Demo businesses stopped — no simulated publishing or messages until you resume."
+        : "EMERGENCY STOP is active — no publishing, messages or checkouts are being sent. Payments and attribution keep running."}
       <button
         className="rounded bg-white/20 px-2 py-0.5 text-xs font-semibold hover:bg-white/30"
         disabled={pending}
@@ -144,7 +146,7 @@ function TopBar({ data, onMenu }: { data: ShellData; onMenu: () => void }) {
               startStop(async () => {
                 if (!confirm(data.emergencyStop ? "Lift the emergency stop and resume automation?" : "EMERGENCY STOP: halt all publishing, messages and checkouts in every business now?")) return;
                 const r = await emergencyStopAction(!data.emergencyStop);
-                if (r.ok) toast.success(r.data.scope === "DEMO_WORKSPACES" ? "Demo businesses paused" : r.message);
+                if (r.ok) toast.success(r.data.scope === "DEMO_WORKSPACES" ? (data.emergencyStop ? "Demo businesses resumed" : "Demo businesses paused") : r.message);
                 else toast.error(r.error);
                 router.refresh();
               })

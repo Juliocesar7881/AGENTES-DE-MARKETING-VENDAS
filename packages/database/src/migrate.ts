@@ -1,8 +1,9 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { closeDb, getDb } from "./client";
+import { closeDb } from "./client";
 
 export const MIGRATIONS_FOLDER = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
@@ -34,7 +35,13 @@ export async function ensureLocalDatabase(url: string): Promise<void> {
 export async function runMigrations(url = process.env.DATABASE_URL): Promise<void> {
   if (!url) throw new Error("DATABASE_URL is not set.");
   await ensureLocalDatabase(url);
-  await migrate(getDb(), { migrationsFolder: MIGRATIONS_FOLDER });
+  // Dedicated connection: migrate exactly the database given, whatever DATABASE_URL says.
+  const client = postgres(url, { max: 1, onnotice: () => {} });
+  try {
+    await migrate(drizzle(client), { migrationsFolder: MIGRATIONS_FOLDER });
+  } finally {
+    await client.end({ timeout: 5 });
+  }
 }
 
 /** Drops everything. Refuses to run against non-local databases unless ALLOW_DB_RESET=true. */

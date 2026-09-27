@@ -44,14 +44,17 @@ function scoreTone(s: number) {
 }
 
 function LeadCard({ lead, slug, currency }: { lead: KanbanLead; slug: string; currency: string }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: lead.id, disabled: lead.stage === "WON" });
+  // WON only comes from a confirmed payment. A locked card is not a drag handle, so it gets no
+  // role/aria-disabled (which would also mark its link as disabled for assistive tech).
+  const locked = lead.stage === "WON";
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: lead.id, disabled: locked });
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      {...(locked ? {} : listeners)}
+      {...(locked ? {} : attributes)}
       style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
-      className={cn("rounded-lg border border-border bg-card p-2.5 shadow-card", lead.stage !== "WON" && "cursor-grab active:cursor-grabbing", isDragging && "z-50 shadow-pop ring-2 ring-primary")}
+      className={cn("rounded-lg border border-border bg-card p-2.5 shadow-card", !locked && "cursor-grab active:cursor-grabbing", isDragging && "z-50 shadow-pop ring-2 ring-primary")}
     >
       <div className="flex items-start justify-between gap-2">
         <Link href={`/w/${slug}/crm/${lead.id}`} onPointerDown={(e) => e.stopPropagation()} className="min-w-0 truncate text-[13px] font-medium hover:underline">

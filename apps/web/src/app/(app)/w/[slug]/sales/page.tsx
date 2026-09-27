@@ -147,6 +147,11 @@ export default async function SalesPage({ params, searchParams }: { params: Prom
                     <TD className="text-[12px]">{c.createdBy === "AI" ? "Sales Agent" : "You"}{Number(c.discountPct) ? ` · ${Number(c.discountPct)}% off` : ""}</TD>
                     <TD>
                       <Badge tone={c.status === "PAID" ? "success" : c.status === "SENT" ? "info" : c.status === "EXPIRED" || c.status === "CANCELLED" ? "neutral" : "warning"}>{c.status.toLowerCase()}</Badge>
+                      {c.url && (c.status === "CREATED" || c.status === "SENT") ? (
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-[12px] text-primary hover:underline">
+                          open link
+                        </a>
+                      ) : null}
                     </TD>
                     <TD className="tabular text-right">{money(c.amountCents, c.currency)}</TD>
                   </TR>

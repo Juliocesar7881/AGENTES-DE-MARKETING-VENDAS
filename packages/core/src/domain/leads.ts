@@ -28,7 +28,6 @@ import { sha256Hex as hash } from "@revenueos/shared/server";
 import { db, now } from "../deps";
 import { emitEvent } from "../events";
 import type { JobOrigin } from "../jobs/queue";
-import type { Workspace } from "../providers";
 import { audit, notify, recordActivity } from "../records";
 
 export type Lead = typeof leads.$inferSelect;
