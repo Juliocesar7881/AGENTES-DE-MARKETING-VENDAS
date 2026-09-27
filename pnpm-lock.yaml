@@ -39,6 +39,37 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@22.20.4)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(terser@5.51.2)(tsx@4.23.15))
 
+  apps/worker:
+    dependencies:
+      '@remotion/renderer':
+        specifier: 4.0.529
+        version: 4.0.529(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@revenueos/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
+      '@revenueos/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@revenueos/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@revenueos/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
+      '@revenueos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@revenueos/video-engine':
+        specifier: workspace:*
+        version: link:../../packages/video-engine
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+    optionalDependencies:
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
+
   packages/agents:
     dependencies:
       '@revenueos/providers':

@@ -1,0 +1,30 @@
+{
+  "name": "@revenueos/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "revenueos-worker": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "start": "tsx src/index.ts",
+    "check": "tsx src/cli/check.ts",
+    "render": "tsx src/cli/render.ts",
+    "simulate": "tsx src/cli/simulate.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@remotion/renderer": "4.0.529",
+    "@revenueos/agents": "workspace:*",
+    "@revenueos/core": "workspace:*",
+    "@revenueos/database": "workspace:*",
+    "@revenueos/providers": "workspace:*",
+    "@revenueos/shared": "workspace:*",
+    "@revenueos/video-engine": "workspace:*",
+    "tsx": "^4.23.15"
+  },
+  "optionalDependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
