@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { configureCore, JobRunner, registerCoreHandlers, registerHandler, runSchedulerTick } from "@revenueos/core";
-import { closeDb } from "@revenueos/database";
+import { closeDb, ensureEmbeddedPostgres } from "@revenueos/database";
 import { createLogger, serializeError } from "@revenueos/shared";
 import { loadDotEnv, loadWorkerConfig, REPO_ROOT, saveWorkerConfig, WORKER_VERSION, type WorkerConfig } from "./config";
 import { cleanupLocalHandler, deliveryHandler, processAssetHandler, screenshotHandler, validateCompositionHandler } from "./handlers/local";
@@ -28,6 +28,8 @@ async function main(): Promise<void> {
   const cfg = loadWorkerConfig();
   const startedAt = new Date();
   configureCore({ runnerId: cfg.workerId, isLocalWorker: true });
+  // Built-in database: start it when no other RevenueOS process (launcher/dashboard) has.
+  await ensureEmbeddedPostgres().catch((e) => log.warn("built-in database unavailable", { error: serializeError(e).message }));
 
   registerCoreHandlers();
   registerHandler("RENDER_VIDEO", renderHandler, renderFinalFailure);
@@ -156,7 +158,7 @@ async function main(): Promise<void> {
         lastError = `Queue unavailable: ${serializeError(e).message}`;
         log.warn("job poll failed, retrying", { error: lastError, retryInMs: backoff });
         await sleep(backoff);
-        backoff = Math.min(60_000, backoff * 2);
+        backoff = Math.min(20_000, backoff * 2);
       }
     }
   };

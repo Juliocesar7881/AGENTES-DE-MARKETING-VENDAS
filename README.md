@@ -32,9 +32,26 @@ Cada negócio é um **workspace** isolado (dados, marca, contas, agentes, agenda
 
 ---
 
-## Como rodar (um computador)
+## Como rodar (um computador, sem terminal)
 
-Requisitos: **Node 20.18+**, **pnpm** (via `corepack enable`), **Postgres 15+** local (ou uma URL do Supabase).
+1. Instale o **Node.js 20+** (nodejs.org → LTS).
+2. Dê dois cliques em **`RevenueOS.bat`** (Windows) ou **`RevenueOS.command`** (macOS). Na primeira vez ele
+   instala as dependências, prepara o dashboard e oferece um atalho na área de trabalho.
+3. O navegador abre sozinho no **instalador** (`/install`), com o código de configuração já preenchido:
+   - **Banco de dados**: *Built-in database* (recomendado — um PostgreSQL 17 privado roda dentro do
+     RevenueOS, só em 127.0.0.1, sem instalar nada), *My PostgreSQL* ou *Cloud database* (Supabase), com
+     botão **Test connection**;
+   - a chave de criptografia é gerada e salva no `.env`; tabelas e políticas de segurança (RLS) são criadas;
+   - por fim você cria a **conta de administrador**.
+4. Você cai no **assistente de configuração** (`/setup`), que traz tudo numa tela só, com os formulários
+   reais e testes: Claude → worker local → negócio → apps das redes → contas sociais → pagamentos →
+   WhatsApp → endereço público e armazenamento → **Go live** (modo Manual/Assisted/Autopilot por negócio,
+   **Run all tests** e **Create the first video now**).
+
+O launcher mantém dashboard, worker e banco rodando; fechar a janela desliga tudo na ordem certa.
+Rodar de novo reaproveita tudo (e recompila sozinho após uma atualização). Linux: `pnpm launch`.
+
+### Pelo terminal (desenvolvimento)
 
 ```bash
 pnpm install
@@ -43,7 +60,7 @@ pnpm dev        # dashboard em http://localhost:3000 + worker local (render) jun
 ```
 
 - Só o dashboard: `pnpm dev:web` · só o worker: `pnpm worker`
-- Produção local: `pnpm build && pnpm start` (o scheduler roda embutido no servidor; desligue com `EMBEDDED_RUNNER=false`)
+- Produção local: `pnpm launch` (ou `pnpm build && pnpm start`; o scheduler roda embutido no servidor — desligue com `EMBEDDED_RUNNER=false`)
 - Verificar a máquina do worker: `pnpm worker:check` (Node, banco, FFmpeg, pasta de render, IA, storage e um render de teste)
 
 ## Login demo
@@ -57,6 +74,8 @@ conversa → checkout → pagamento → atribuição).
 A **primeira conta criada** em *Create account* vira **administradora** (integrações, IA, worker, parada de emergência).
 
 ## Worker local (Windows)
+
+Com o `RevenueOS.bat` o worker já sobe junto (ícone na bandeja). Para um worker **em outro computador**:
 
 1. Dê dois cliques em **`setup-worker.bat`** (na raiz). Ele verifica Node/pnpm/espaço em disco, instala
    dependências, usa o `.env` ou pede `DATABASE_URL`/chaves e as guarda **criptografadas com DPAPI** do
@@ -74,9 +93,10 @@ macOS/Linux: `pnpm worker` (início automático opcional via LaunchAgent / `.des
 
 ## O que precisa ser conectado (produção)
 
-Nada disso é necessário para a demo. Tudo é conectado **pela interface**, com OAuth oficial; credenciais
-ficam criptografadas (AES-256-GCM) no banco e nunca voltam ao navegador. Checklist completo em **/setup**
-e passo a passo com as URLs para copiar em **Help → Connections** (`/help/connections`).
+Nada disso é necessário para a demo. Tudo é conectado **pela interface** — o assistente **Setup** (`/setup`)
+guia passo a passo, com o formulário de cada item, o guia de onde pegar cada credencial, as URLs para copiar e
+um botão de teste. OAuth oficial; credenciais ficam criptografadas (AES-256-GCM) no banco e nunca voltam ao
+navegador. Detalhes e limites de cada plataforma em **Help → Connections** (`/help/connections`).
 
 | Item | Onde | Para quê |
 |---|---|---|
@@ -85,7 +105,8 @@ e passo a passo com as URLs para copiar em **Help → Connections** (`/help/conn
 | Contas sociais de cada negócio | Negócio → Connections → *Connect* | OAuth na página oficial da rede (sem senha) |
 | WhatsApp Cloud API | Negócio → Connections | Sales Agent responder no WhatsApp |
 | Mercado Pago e/ou Stripe | Negócio → Connections | Links de checkout + webhook de pagamento |
-| Supabase Storage | `.env` (`STORAGE_DRIVER=supabase`) | Só se o dashboard ficar na nuvem e o worker em casa |
+| Endereço público (https) | Setup → Public address & storage | Confirmação de pagamento, mensagens do WhatsApp/Instagram e publicação no Instagram (túnel Cloudflare grátis ou hospedagem) |
+| Supabase Storage | Setup → Public address & storage | Só se o dashboard ficar na nuvem e o worker em casa (testado antes de salvar) |
 
 ### Anthropic
 
@@ -138,9 +159,9 @@ sem automação de navegador em redes sociais ou no Claude, sem cookies, sem end
 ## Testes
 
 ```bash
-pnpm test:unit          # 80 testes: schemas, criptografia, assinaturas, SSRF, guardrails, layout, máquinas de estado
+pnpm test:unit          # 85 testes: schemas, criptografia, assinaturas, SSRF, guardrails, layout, máquinas de estado, arquivo .env
 pnpm test:integration   # Postgres isolado (revenueos_test): RLS, THREE BUSINESS TEST, falhas, pagamentos, auth e o ciclo completo com render real
-pnpm test:e2e           # Playwright no build de produção com banco isolado (revenueos_e2e); E2E_BUILD=1 força rebuild
+pnpm test:e2e           # Playwright no build de produção com bancos isolados: demo, admin + assistente e instalação do zero pelo navegador; E2E_BUILD=1 força rebuild
 pnpm lint && pnpm typecheck
 ```
 
@@ -176,5 +197,6 @@ Veja [`docs/deploy.md`](docs/deploy.md) (Vercel + Supabase + worker em casa) e
 
 ## Backup
 
-`pg_dump "$DATABASE_URL" > revenueos-$(date +%F).sql` (inclui credenciais criptografadas — guarde junto o
+Banco embutido: feche o RevenueOS e copie a pasta de dados (`%LOCALAPPDATA%\RevenueOS\pgdata` no Windows)
+junto com o `.env`. Outros bancos: `pg_dump "$DATABASE_URL" > revenueos-$(date +%F).sql` (inclui credenciais criptografadas — guarde junto o
 `APP_ENCRYPTION_KEY`, sem ele elas não podem ser lidas) e a pasta de renders. Trocar a chave exige reconectar integrações.

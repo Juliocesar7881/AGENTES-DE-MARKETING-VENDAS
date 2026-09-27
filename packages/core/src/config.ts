@@ -25,7 +25,7 @@ export function getConfig(): CoreConfig {
   const env = (process.env.NODE_ENV === "production" ? "production" : process.env.NODE_ENV === "test" ? "test" : "development") as CoreConfig["env"];
   const dataDir = resolve(/*turbopackIgnore: true*/ process.env.REVENUEOS_DATA_DIR ?? join(findRepoRoot(), ".data"));
   cached = {
-    appUrl: (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+    appUrl: (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${process.env.PORT ?? 3000}`).replace(/\/$/, ""),
     env,
     demoEnabled: (process.env.DEMO_MODE_ENABLED ?? "true") !== "false",
     storageDriver: process.env.STORAGE_DRIVER === "supabase" ? "supabase" : "local",

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname, userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseDotEnv } from "@revenueos/shared/server";
 
 export const WORKER_VERSION = "0.1.0";
 
@@ -107,16 +108,11 @@ export function saveWorkerConfig(patch: Partial<WorkerConfig>): WorkerConfig {
 
 /** Loads the repo .env (and .env.local) without overriding real env vars. */
 export function loadDotEnv(): void {
-  for (const file of [".env", ".env.local", ".env.worker"]) {
-    const p = join(REPO_ROOT, file);
+  const files = process.env.REVENUEOS_ENV_FILE ? [resolve(process.env.REVENUEOS_ENV_FILE), join(REPO_ROOT, ".env.worker")] : [".env", ".env.local", ".env.worker"].map((f) => join(REPO_ROOT, f));
+  for (const p of files) {
     if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split(/\r?\n/)) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      let v = m[2]!;
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      else v = v.replace(/\s+#.*$/, "");
-      if (process.env[m[1]!] === undefined) process.env[m[1]!] = v;
+    for (const [k, v] of Object.entries(parseDotEnv(readFileSync(p, "utf8")))) {
+      if (process.env[k] === undefined) process.env[k] = v;
     }
   }
 }

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DEFAULT_AI_SETTINGS, ECONOMY_MODEL_PRESET } from "@revenueos/shared";
-import { getAISettings, getConfig, getGlobalSettings, integrationOverview, oauthRedirectUri } from "@revenueos/core";
+import { getAISettings, getConfig, getGlobalSettings, integrationOverview } from "@revenueos/core";
 import { auditLogs, desc, eq, withUser, workspaces } from "@revenueos/database";
 import { AccountPanel } from "@/components/settings/account-panel";
 import { AISettingsPanel } from "@/components/settings/ai-settings";
-import { AppsPanel, type AppView } from "@/components/settings/apps-panel";
+import { AppsPanel } from "@/components/settings/apps-panel";
 import { SystemPanel } from "@/components/settings/system-panel";
 import { WorkerPanel } from "@/components/settings/worker-panel";
 import { PageHeader } from "@/components/ui/misc";
 import { cn } from "@/lib/utils";
 import { workerStatuses } from "@/server/queries";
+import { platformApps } from "@/server/setup";
 import { requireUser } from "@/server/session";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -50,34 +51,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       />
     );
   } else if (tab === "integrations") {
-    const integ = await integrationOverview(null);
-    const def = (platform: AppView["platform"], key: AppView["key"], title: string, idLabel: string, secretLabel: string, portal: string, idField: string, envId: string, envSecret: string): AppView => {
-      const i = integ.find((x) => x.key === key);
-      return {
-        platform,
-        key,
-        title,
-        idLabel,
-        secretLabel,
-        portal,
-        status: i?.status ?? null,
-        clientId: (i?.config?.[idField] as string | undefined) ?? null,
-        hasSecret: Boolean(i?.credentials.length),
-        fromEnv: !i && Boolean(process.env[envId] && process.env[envSecret]),
-        audited: platform === "TIKTOK" ? Boolean(i?.config?.audited) : undefined,
-        redirectUri: oauthRedirectUri(platform),
-      };
-    };
-    body = (
-      <AppsPanel
-        apps={[
-          def("INSTAGRAM", "instagram", "Instagram (API with Instagram Login)", "Instagram app ID", "Instagram app secret", "https://developers.facebook.com/apps", "appId", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET"),
-          def("TIKTOK", "tiktok", "TikTok (Content Posting API)", "Client key", "Client secret", "https://developers.tiktok.com/apps", "clientKey", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"),
-          def("YOUTUBE", "google", "YouTube (Google OAuth client)", "OAuth client ID", "OAuth client secret", "https://console.cloud.google.com/apis/credentials", "clientId", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
-          def("FACEBOOK", "meta", "Facebook Pages (Meta app)", "Meta app ID", "Meta app secret", "https://developers.facebook.com/apps", "appId", "META_APP_ID", "META_APP_SECRET"),
-        ]}
-      />
-    );
+    body = <AppsPanel apps={await platformApps()} />;
   } else if (tab === "worker") {
     body = <WorkerPanel workers={await workerStatuses()} isAdmin={user.isAdmin} />;
   } else if (tab === "system") {

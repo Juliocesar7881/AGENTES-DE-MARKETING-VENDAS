@@ -27,7 +27,7 @@ const lines = (s: string) =>
     .map((x) => x.trim())
     .filter(Boolean);
 
-export function OnboardingWizard({ isDemoUser }: { isDemoUser: boolean }) {
+export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: boolean; returnToSetup?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [pending, start] = useTransition();
@@ -89,7 +89,7 @@ export function OnboardingWizard({ isDemoUser }: { isDemoUser: boolean }) {
       });
       if (r.ok) {
         toast.success("Business created — connect its accounts next");
-        router.push(`/w/${r.data.slug}/connections`);
+        router.push(returnToSetup ? `/setup?step=apps&ws=${r.data.slug}` : `/w/${r.data.slug}/connections`);
       } else toast.error(r.error);
     });
 

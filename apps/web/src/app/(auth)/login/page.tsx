@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getConfig, userCount } from "@revenueos/core";
+import { needsInstall } from "@/server/install";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
+  if (await needsInstall()) redirect("/install");
   let users = 1;
   let dbError: string | null = null;
   try {
@@ -20,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <p className="mt-1 text-sm text-muted-foreground">Run every business from one control plane.</p>
       {dbError ? (
         <div className="mt-6 rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
-          The database is not reachable. Check <code className="font-mono">DATABASE_URL</code> in <code className="font-mono">.env</code> and run <code className="font-mono">pnpm setup</code>.
+          The database is not reachable ({dbError}). If you use the built-in database, start RevenueOS with the launcher; otherwise check the database server.
         </div>
       ) : null}
       <LoginForm next={next} demoEnabled={getConfig().demoEnabled} />

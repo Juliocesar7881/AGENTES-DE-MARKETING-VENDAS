@@ -1,11 +1,35 @@
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { findRepoRoot } from "@revenueos/shared/server";
 import { closeDb } from "./client";
 
-export const MIGRATIONS_FOLDER = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+/** Bundlers (Next.js) relocate this file, so fall back to the repository layout. */
+function resolveMigrationsFolder(): string {
+  const local = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+  if (existsSync(join(/*turbopackIgnore: true*/ local, "meta", "_journal.json"))) return local;
+  const root = findRepoRoot();
+  return root ? join(/*turbopackIgnore: true*/ root, "packages", "database", "migrations") : local;
+}
+
+export const MIGRATIONS_FOLDER = resolveMigrationsFolder();
+
+/** Applied vs. available migrations for a database (0 applied when it was never migrated). */
+export async function migrationStatus(url: string): Promise<{ applied: number; total: number }> {
+  const journal = JSON.parse(readFileSync(join(/*turbopackIgnore: true*/ MIGRATIONS_FOLDER, "meta", "_journal.json"), "utf8")) as { entries: unknown[] };
+  const c = postgres(url, { max: 1, connect_timeout: 5, idle_timeout: 1, onnotice: () => {}, prepare: !/:6543\//.test(url) });
+  try {
+    const [t] = await c`select to_regclass('drizzle.__drizzle_migrations') is not null as ok`;
+    if (!t?.ok) return { applied: 0, total: journal.entries.length };
+    const [r] = await c`select count(*)::int as n from drizzle.__drizzle_migrations`;
+    return { applied: Number(r?.n ?? 0), total: journal.entries.length };
+  } finally {
+    await c.end({ timeout: 1 });
+  }
+}
 
 function isLocal(url: string): boolean {
   try {

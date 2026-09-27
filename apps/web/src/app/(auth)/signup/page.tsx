@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { userCount } from "@revenueos/core";
+import { needsInstall } from "@/server/install";
 import { SignUpForm } from "./signup-form";
 
 export const metadata: Metadata = { title: "Create account" };
 
 export default async function SignUpPage() {
+  if (await needsInstall()) redirect("/install");
   const first = (await userCount().catch(() => 1)) === 0;
   return (
     <div className="w-full max-w-sm">

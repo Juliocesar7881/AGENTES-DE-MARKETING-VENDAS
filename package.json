@@ -2,7 +2,7 @@
   "name": "revenueos",
   "version": "0.1.0",
   "private": true,
-  "description": "RevenueOS — autonomous revenue engine: multi-business content, video, CRM and sales automation powered by Claude + Remotion.",
+  "description": "RevenueOS \u2014 autonomous revenue engine: multi-business content, video, CRM and sales automation powered by Claude + Remotion.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20.18"
@@ -10,6 +10,7 @@
   "scripts": {
     "postinstall": "node scripts/copy-fonts.mjs",
     "dev": "node scripts/dev-all.mjs",
+    "launch": "node --import tsx scripts/launcher.ts",
     "dev:web": "pnpm --filter @revenueos/web dev",
     "dev:worker": "pnpm --filter @revenueos/worker dev",
     "build": "pnpm --filter @revenueos/web build",

@@ -17,7 +17,15 @@ export const getUser = cache(async (): Promise<SessionUser | null> => {
 });
 
 export async function requireUser(): Promise<SessionUser> {
-  const user = await getUser();
+  let user: SessionUser | null;
+  try {
+    user = await getUser();
+  } catch (e) {
+    // Not installed yet (or the database is gone): send the browser to the installer/diagnostics.
+    const { needsInstall } = await import("./install");
+    if (await needsInstall().catch(() => true)) redirect("/install");
+    throw e;
+  }
   if (!user) redirect("/login");
   return user;
 }

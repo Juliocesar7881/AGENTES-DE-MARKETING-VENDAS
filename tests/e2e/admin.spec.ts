@@ -12,12 +12,19 @@ test("first account becomes admin, creates a LIVE business and sees what to conn
   await page.getByLabel("E-mail").fill(`owner-${Date.now()}@example.com`);
   await page.getByLabel("Password").fill("uma-senha-bem-forte");
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL(/\/(setup|onboarding)/);
-  await page.goto("/setup");
-  await expect(page.getByRole("heading", { name: "Setup checklist" })).toBeVisible();
+  await page.waitForURL(/\/setup/);
 
-  // Onboarding wizard (10 steps)
-  await page.goto("/onboarding");
+  // Setup wizard: starts at the first open step, with the real forms inline.
+  await expect(page.getByRole("heading", { name: "Connect Claude" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save & test" })).toBeDisabled();
+  await page.getByRole("button", { name: /Economy/ }).click();
+  await expect(page.getByText("Economy preset selected")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Economy/ })).toHaveAttribute("aria-pressed", "true");
+
+  // Business step → onboarding wizard (10 steps) → back to the setup wizard.
+  await page.getByRole("link", { name: /3\. Your business/ }).click();
+  await page.getByRole("main").getByRole("link", { name: /Create your first business/ }).click();
+  await page.waitForURL(/\/onboarding\?from=setup/);
   await page.getByPlaceholder("e.g. Clínica Sorriso").fill("Clínica Sorriso E2E");
   await page.getByPlaceholder("e.g. odontologia").fill("odontologia");
   await page.getByRole("button", { name: /Continue/ }).click();
@@ -34,11 +41,30 @@ test("first account becomes admin, creates a LIVE business and sees what to conn
   await expect(page.getByText("Clareamento (R$ 890)")).toBeVisible();
   await page.getByRole("button", { name: /Continue/ }).click(); // → Launch
   await page.getByRole("button", { name: "Create business" }).click();
-  await page.waitForURL(/\/w\/[^/]+\/connections/);
-
-  // Nothing is published until accounts are connected; the app says exactly what is missing.
+  await page.waitForURL(/\/setup\?step=apps&ws=/);
   await expect(page.getByText("LIVE", { exact: true }).first()).toBeVisible();
+
+  // Developer apps: guide + redirect URI + credentials, saved encrypted.
+  await expect(page.getByRole("heading", { name: "Developer apps" })).toBeVisible();
+  const ig = page.locator("form").filter({ hasText: "Instagram app ID" });
+  await expect(ig.getByText("/api/oauth/instagram/callback")).toBeVisible();
+  await ig.getByLabel("Instagram app ID").fill("123456789012345");
+  await ig.getByLabel("Instagram app secret").fill("e2e-app-secret-value");
+  await ig.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Ready").first()).toBeVisible();
+
+  // Social accounts: Instagram can now be connected with official OAuth; TikTok still needs its app.
+  await page.getByRole("link", { name: /Next: Social accounts/ }).click();
+  await expect(page.getByRole("link", { name: "Connect Instagram" })).toHaveAttribute("href", /\/api\/oauth\/instagram\/start\?workspaceId=/);
   await expect(page.getByText(/developer app is not configured yet/).first()).toBeVisible();
+
+  // Go live: choose the mode and run every connection test for real.
+  await page.getByRole("link", { name: /9\. Go live/ }).click();
+  await page.getByRole("button", { name: /Autopilot/ }).click();
+  await expect(page.getByText(/: Autopilot/)).toBeVisible();
+  await page.getByRole("button", { name: "Run all tests" }).click();
+  await expect(page.getByText("Local worker", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("No account connected")).toBeVisible();
 
   // Admin-only settings are available to the first account.
   await page.goto("/settings?tab=ai");

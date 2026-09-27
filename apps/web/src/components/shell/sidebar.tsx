@@ -78,7 +78,7 @@ export function Sidebar({ data, onNavigate }: { data: ShellData; onNavigate?: ()
         </div>
       </nav>
       <div className="space-y-0.5 border-t border-border px-3 py-3">
-        {data.user.isAdmin ? <NavLink href="/setup" icon={ListChecks} label="Setup checklist" /> : null}
+        {data.user.isAdmin ? <NavLink href="/setup" icon={ListChecks} label="Setup" /> : null}
         <NavLink href="/settings" icon={Settings} label="Settings" />
         <NavLink href="/help/connections" icon={LifeBuoy} label="Help · Connections" />
       </div>

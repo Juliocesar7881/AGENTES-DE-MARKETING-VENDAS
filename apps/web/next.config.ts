@@ -5,7 +5,8 @@ import type { NextConfig } from "next";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Single .env at the repository root (shared by the dashboard, worker and scripts).
-loadEnvConfig(root, process.env.NODE_ENV !== "production");
+// REVENUEOS_ENV_FILE points to another file (tests, custom layouts); it is loaded lazily by the app.
+if (!process.env.REVENUEOS_ENV_FILE) loadEnvConfig(root, process.env.NODE_ENV !== "production");
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },

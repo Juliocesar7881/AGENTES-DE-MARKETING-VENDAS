@@ -10,3 +10,8 @@ onlyBuiltDependencies:
   - "@remotion/compositor-win32-x64-msvc"
   - "@remotion/compositor-darwin-arm64"
   - "@remotion/compositor-darwin-x64"
+  - "@embedded-postgres/windows-x64"
+  - "@embedded-postgres/linux-x64"
+  - "@embedded-postgres/linux-arm64"
+  - "@embedded-postgres/darwin-arm64"
+  - "@embedded-postgres/darwin-x64"

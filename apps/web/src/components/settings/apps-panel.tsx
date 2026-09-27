@@ -28,7 +28,7 @@ export interface AppView {
   redirectUri: string;
 }
 
-export function AppsPanel({ apps }: { apps: AppView[] }) {
+export function AppsPanel({ apps, guides, targeted }: { apps: AppView[]; guides?: Record<string, string[]>; targeted?: string[] }) {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-[13px] text-muted-foreground">
@@ -37,40 +37,41 @@ export function AppsPanel({ apps }: { apps: AppView[] }) {
           Step-by-step guides
         </Link>
       </p>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         {apps.map((a) => (
-          <AppCard key={a.platform} app={a} />
+          <AppCard key={a.platform} app={a} guide={guides?.[a.platform]} targeted={targeted?.includes(a.platform)} />
         ))}
       </div>
     </div>
   );
 }
 
-function AppCard({ app }: { app: AppView }) {
+function AppCard({ app, guide, targeted }: { app: AppView; guide?: string[]; targeted?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [clientId, setClientId] = useState(app.clientId ?? "");
   const [secret, setSecret] = useState("");
   const [audited, setAudited] = useState(Boolean(app.audited));
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <PlatformIcon platform={app.platform} size={28} />
-          <div>
+          <div className="min-w-0">
             <CardTitle>{app.title}</CardTitle>
-            <CardDescription>
-              <a href={app.portal} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <a href={app.portal} target="_blank" rel="noopener noreferrer" className="truncate text-primary hover:underline">
                 {app.portal.replace(/^https:\/\//, "")}
               </a>
+              {targeted ? <Badge tone="primary">used by your businesses</Badge> : null}
             </CardDescription>
           </div>
         </div>
-        {app.fromEnv ? <Badge tone="success">from .env</Badge> : app.status ? <StatusBadge map={INTEGRATION_STATUS} value={app.status} /> : <Badge>Not configured</Badge>}
+        <div className="shrink-0">{app.fromEnv ? <Badge tone="success">from .env</Badge> : app.status ? <StatusBadge map={INTEGRATION_STATUS} value={app.status} /> : <Badge>Not configured</Badge>}</div>
       </CardHeader>
       <CardContent>
         <form
-          className="grid gap-3"
+          className="grid min-w-0 gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             start(async () => {
@@ -83,12 +84,25 @@ function AppCard({ app }: { app: AppView }) {
             });
           }}
         >
+          {guide ? (
+            <details className="rounded-lg border border-border px-3 py-2 text-[12px]" open={!app.status && !app.fromEnv && targeted}>
+              <summary className="cursor-pointer font-medium">How to get these (about 10 minutes)</summary>
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-muted-foreground">
+                {guide.map((g) => (
+                  <li key={g}>{g}</li>
+                ))}
+              </ol>
+              <Link href={`/help/connections#${app.platform === "YOUTUBE" ? "youtube" : app.platform.toLowerCase()}`} className="mt-2 inline-block text-primary hover:underline">
+                Full guide with limits →
+              </Link>
+            </details>
+          ) : null}
           <CopyField label="OAuth redirect URI (paste in the developer portal)" value={app.redirectUri} />
-          <Field label={app.idLabel}>
-            <Input value={clientId} onChange={(e) => setClientId(e.target.value)} required />
+          <Field label={app.idLabel} htmlFor={`${app.key}-client-id`}>
+            <Input id={`${app.key}-client-id`} value={clientId} onChange={(e) => setClientId(e.target.value)} required />
           </Field>
-          <Field label={app.secretLabel} hint={app.hasSecret ? "Saved. Leave empty to keep the current secret." : undefined}>
-            <Input type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
+          <Field label={app.secretLabel} htmlFor={`${app.key}-secret`} hint={app.hasSecret ? "Saved. Leave empty to keep the current secret." : undefined}>
+            <Input id={`${app.key}-secret`} type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
           </Field>
           {app.platform === "TIKTOK" ? (
             <label className="flex items-center gap-2 text-sm">
