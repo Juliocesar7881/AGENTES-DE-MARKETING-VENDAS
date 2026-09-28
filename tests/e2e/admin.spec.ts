@@ -64,7 +64,8 @@ test("first account becomes admin, creates a LIVE business and sees what to conn
   await expect(page.getByText(/: Autopilot/)).toBeVisible();
   await page.getByRole("button", { name: "Run all tests" }).click();
   await expect(page.getByText("Local worker", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("No account connected")).toBeVisible();
+  await expect(page.getByText("No account connected", { exact: true })).toBeVisible();
+  await expect(page.getByText("Will it really post?")).toBeVisible();
 
   // Admin-only settings are available to the first account.
   await page.goto("/settings?tab=ai");

@@ -39,7 +39,7 @@ function refresh(slug: string) {
   revalidatePath("/overview");
 }
 
-export async function requestContentAction(workspaceId: string, input: { count: number; focus?: string | null }) {
+export async function requestContentAction(workspaceId: string, input: { count: number; focus?: string | null; publishAsap?: boolean }) {
   return run(async () => {
     const { user, ws } = await member(workspaceId);
     const id = await requestContent(workspaceId, user.id, input);
@@ -128,6 +128,7 @@ const OnboardingSchema = z.object({
   timezone: z.string().default("America/Sao_Paulo"),
   postsPerDay: z.number().int().min(1).max(6).default(2),
   postingSchedule: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).min(1).max(6),
+  postingMode: z.enum(["smart", "fixed", "asap"]).default("smart"),
   targetPlatforms: z.array(z.enum(["INSTAGRAM", "FACEBOOK", "TIKTOK", "YOUTUBE"])).min(1),
   operatingMode: z.enum(OPERATING_MODES).default("ASSISTED"),
   whatsappNumber: z.string().trim().max(20).nullable().optional(),

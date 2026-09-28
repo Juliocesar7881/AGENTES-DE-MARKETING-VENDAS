@@ -72,3 +72,15 @@ export function timeAgo(date: Date | string | null | undefined, now = new Date()
   if (h < 48) return `${h}h ago`;
   return `${Math.round(h / 24)}d ago`;
 }
+
+/** True when an address can be opened by anyone on the internet (https, not localhost/private LAN names). */
+export function isPublicAppUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    return !(h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h.endsWith(".local") || h.endsWith(".localhost") || /^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h));
+  } catch {
+    return false;
+  }
+}

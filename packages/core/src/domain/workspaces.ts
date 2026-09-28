@@ -18,6 +18,7 @@ import {
   RetentionSettingsSchema,
   slugify,
   type AutopilotPermissionKey,
+  type PostingMode,
   type FontFamily,
   type OperatingMode,
   type Platform,
@@ -41,6 +42,7 @@ export interface CreateWorkspaceInput {
   timezone?: string;
   postsPerDay?: number;
   postingSchedule?: string[];
+  postingMode?: PostingMode;
   targetPlatforms?: Platform[];
   operatingMode?: OperatingMode;
   whatsappNumber?: string | null;
@@ -104,6 +106,7 @@ export async function createWorkspace(input: CreateWorkspaceInput, userId: strin
         timezone: input.timezone ?? "America/Sao_Paulo",
         postsPerDay,
         postingSchedule: schedule.slice(0, Math.max(1, postsPerDay)),
+        postingMode: input.postingMode ?? "smart",
         targetReadyBuffer: 4,
         maxContentGeneratedPerDay: 4,
         maxContentPublishedPerDay: Math.max(2, postsPerDay),

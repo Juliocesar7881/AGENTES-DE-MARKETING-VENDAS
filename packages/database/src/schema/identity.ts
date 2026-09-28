@@ -4,6 +4,7 @@ import type {
   AutopilotPermissions,
   OperatingMode,
   Platform,
+  PostingMode,
   RetentionSettings,
   SalesSettings,
   WorkspaceEnvironment,
@@ -65,6 +66,8 @@ export const workspaces = pgTable(
     timezone: text("timezone").notNull().default("America/Sao_Paulo"),
     postsPerDay: integer("posts_per_day").notNull().default(2),
     postingSchedule: jsonb("posting_schedule").$type<string[]>().notNull().default(["09:00", "18:00"]),
+    /** smart = peak hours learned per business · fixed = postingSchedule · asap = as soon as a video is ready */
+    postingMode: text("posting_mode").$type<PostingMode>().notNull().default("smart"),
     targetReadyBuffer: integer("target_ready_buffer").notNull().default(4),
     maxContentGeneratedPerDay: integer("max_content_generated_per_day").notNull().default(4),
     maxContentPublishedPerDay: integer("max_content_published_per_day").notNull().default(2),

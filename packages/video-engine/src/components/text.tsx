@@ -235,12 +235,20 @@ export function AnimatedSubtitle({ captions, variant }: { captions: Caption[]; v
   const t = useTheme();
   const u = t.layout.unit;
   const time = frame / fps;
-  const active = captions.find((c) => time >= c.start && time < c.end);
+  const idx = captions.findIndex((c) => time >= c.start && time < c.end);
+  const active = idx >= 0 ? captions[idx] : undefined;
   if (!active) return null;
   const local = frame - Math.round(active.start * fps);
   const endLocal = Math.round((active.end - active.start) * fps);
-  const p = progress(local, 0, 6);
-  const out = progress(local, endLocal - 5, endLocal);
+  // Consecutive phrases share the band: it stays on screen and only the words change.
+  const joinedBefore = idx > 0 && Math.abs(captions[idx - 1]!.end - active.start) < 0.02;
+  const joinedAfter = idx < captions.length - 1 && Math.abs(captions[idx + 1]!.start - active.end) < 0.02;
+  const bandIn = joinedBefore ? 1 : progress(local, 0, 6);
+  const bandOut = joinedAfter ? 0 : progress(local, endLocal - 8, endLocal);
+  const textIn = progress(local, 0, joinedBefore ? 4 : 6);
+  const textOut = joinedAfter ? progress(local, endLocal - 4, endLocal) : 0;
+  const p = bandIn;
+  const out = bandOut;
   const style = variant ?? t.style.captionStyle;
   const fit = fitFontSize(active.text, t.layout.safe.width * 0.92, 2, Math.round(54 * u), Math.round(34 * u));
   const words = active.text.split(/\s+/);
@@ -266,7 +274,7 @@ export function AnimatedSubtitle({ captions, variant }: { captions: Caption[]; v
         }}
       >
         {words.map((w, i) => (
-          <span key={i} style={{ opacity: i < wordsShown ? 1 : 0.35, color: i === wordsShown - 1 && style !== "plain" ? t.accent : undefined }}>
+          <span key={i} style={{ opacity: (i < wordsShown ? 1 : 0.35) * textIn * (1 - textOut), color: i === wordsShown - 1 && style !== "plain" ? t.accent : undefined }}>
             {w}
             {i < words.length - 1 ? " " : ""}
           </span>

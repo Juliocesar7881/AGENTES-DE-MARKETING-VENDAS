@@ -77,6 +77,8 @@ export const contents = pgTable(
     similarityScore: real("similarity_score"),
     similarToContentId: uuid("similar_to_content_id"),
     qaStatus: text("qa_status").$type<QaStatus>().notNull().default("PENDING"),
+    /** Publish right after it is ready instead of waiting for the next peak slot (e.g. the first video). */
+    publishAsap: boolean("publish_asap").notNull().default(false),
     qaReport: jsonb("qa_report").$type<{ checks: QaCheck[]; checkedAt: string } | null>(),
     failureReason: text("failure_reason"),
     failureDetails: jsonb("failure_details").$type<Record<string, unknown> | null>(),

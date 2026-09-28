@@ -1,9 +1,11 @@
+import { timingInsights } from "@revenueos/core";
 import { WorkspaceSettings } from "@/components/settings/workspace-settings";
 import { requireWorkspace } from "@/server/session";
 
 export default async function WorkspaceSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { ws } = await requireWorkspace(slug);
+  const timing = await timingInsights(ws).catch(() => null);
   return (
     <WorkspaceSettings
       data={{
@@ -18,6 +20,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
         timezone: ws.timezone,
         postsPerDay: ws.postsPerDay,
         postingSchedule: ws.postingSchedule,
+        postingMode: ws.postingMode,
         targetReadyBuffer: ws.targetReadyBuffer,
         maxContentGeneratedPerDay: ws.maxContentGeneratedPerDay,
         maxContentPublishedPerDay: ws.maxContentPublishedPerDay,
@@ -29,6 +32,7 @@ export default async function WorkspaceSettingsPage({ params }: { params: Promis
         monthlyAiBudgetUsd: ws.monthlyAiBudgetUsd,
         environment: ws.environment,
       }}
+      timing={timing}
     />
   );
 }

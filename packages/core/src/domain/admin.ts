@@ -36,6 +36,7 @@ import { enqueueJob } from "../jobs/queue";
 import { audit, notify, recordActivity } from "../records";
 import { getGlobalSettings, saveGlobalSettings } from "../settings";
 import { ensureSlots } from "./content";
+import { invalidateTimingModel } from "./timing";
 import { markDoNotContact, recomputeLeadScore } from "./leads";
 import { assertMember, getWorkspace } from "./workspaces";
 
@@ -84,7 +85,7 @@ export async function updateWorkspaceGeneral(workspaceId: string, userId: string
 export async function updateWorkspaceScheduling(workspaceId: string, userId: string, input: unknown): Promise<void> {
   await member(userId, workspaceId);
   const d = WorkspaceSchedulingSchema.parse(input);
-  if (d.postingSchedule.length < Math.min(d.postsPerDay, 12)) throw new ValidationError(`Add at least ${d.postsPerDay} posting times for ${d.postsPerDay} posts per day.`);
+  if (d.postingMode === "fixed" && d.postingSchedule.length < Math.min(d.postsPerDay, 12)) throw new ValidationError(`Add at least ${d.postsPerDay} posting times for ${d.postsPerDay} posts per day.`);
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: d.timezone });
   } catch {
@@ -96,9 +97,11 @@ export async function updateWorkspaceScheduling(workspaceId: string, userId: str
     .set({ ...d, postingSchedule: sorted })
     .where(eq(workspaces.id, workspaceId));
   await db().delete(postingSlots).where(and(eq(postingSlots.workspaceId, workspaceId), eq(postingSlots.status, "OPEN"), isNull(postingSlots.contentId), gt(postingSlots.scheduledFor, now())));
+  invalidateTimingModel(workspaceId);
   await ensureSlots(await getWorkspace(workspaceId), 3);
   await audit({ workspaceId, actorType: "USER", actorId: userId, action: "workspace.scheduling", details: { ...d, postingSchedule: sorted } });
-  await recordActivity({ workspaceId, type: "SCHEDULE_UPDATED", title: `Posting schedule updated: ${sorted.join(", ")} (${d.timezone})`, actorType: "USER", actorId: userId });
+  const how = d.postingMode === "smart" ? "smart times (audience peaks + own results)" : d.postingMode === "asap" ? "as soon as each video is ready" : sorted.join(", ");
+  await recordActivity({ workspaceId, type: "SCHEDULE_UPDATED", title: `Posting schedule updated: ${how} (${d.timezone})`, actorType: "USER", actorId: userId });
 }
 
 export async function updateSalesSettings(workspaceId: string, userId: string, input: unknown): Promise<void> {
@@ -354,6 +357,8 @@ export async function setLeadDoNotContact(leadId: string, userId: string, reason
 export const ContentRequestSchema = z.object({
   count: z.number().int().min(1).max(4),
   focus: z.string().trim().max(500).nullable().optional(),
+  /** Publish as soon as the video is ready (e.g. the first video, to see the whole cycle working). */
+  publishAsap: z.boolean().optional(),
 });
 
 /** Human request for new content (bypasses automatic buffer limits but still respects the daily generation cap). */
@@ -361,7 +366,7 @@ export async function requestContent(workspaceId: string, userId: string, input:
   const ws = await member(userId, workspaceId);
   const d = ContentRequestSchema.parse(input);
   if (ws.status !== "ACTIVE") throw new ValidationError("This business is paused. Resume it to create content.");
-  const id = await enqueueJob({ type: "STRATEGY_PLAN", workspaceId, payload: { count: d.count, focus: d.focus ?? null, requestedBy: userId }, origin: "HUMAN" });
+  const id = await enqueueJob({ type: "STRATEGY_PLAN", workspaceId, payload: { count: d.count, focus: d.focus ?? null, requestedBy: userId, publishAsap: d.publishAsap ?? false }, origin: "HUMAN" });
   await recordActivity({ workspaceId, type: "CONTENT_REQUESTED", title: `${d.count} new video${d.count > 1 ? "s" : ""} requested${d.focus ? ` — focus: ${d.focus}` : ""}`, actorType: "USER", actorId: userId, agentRole: "STRATEGIST" });
   return id;
 }

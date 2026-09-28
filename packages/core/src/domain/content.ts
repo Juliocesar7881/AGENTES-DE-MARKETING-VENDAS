@@ -19,13 +19,16 @@ import {
   type DbExecutor,
 } from "@revenueos/database";
 import {
+  addLocalDays,
   AppError,
   BUFFER_IN_PROGRESS_STATUSES,
   BUFFER_READY_STATUSES,
   generateSlots,
+  isPublicAppUrl,
   localDateString,
   PLATFORM_LABELS,
   startOfLocalDay,
+  zonedToUtc,
   type ContentStatus,
   type Platform,
 } from "@revenueos/shared";
@@ -37,6 +40,7 @@ import type { Workspace } from "../providers";
 import { audit, notify, recordActivity } from "../records";
 import { computeBufferNeed } from "./buffer";
 import { assertContentTransition } from "./state-machines";
+import { ensureSmartSlots, tunedTimeFor } from "./timing";
 import { policy } from "./workspaces";
 
 export type Content = typeof contents.$inferSelect;
@@ -61,8 +65,14 @@ export async function setContentStatus(id: string, to: ContentStatus, patch: Par
 
 /* ------------------------------ slots ------------------------------ */
 
-/** Creates posting slots for the next `days` days from the workspace schedule (idempotent upsert). */
+/**
+ * Creates posting slots for the next `days` days (idempotent). Smart mode picks the
+ * business's best hours (peaks + its own results); fixed mode uses the saved times;
+ * "as soon as ready" needs no slots.
+ */
 export async function ensureSlots(ws: Workspace, days = 3): Promise<number> {
+  if (ws.postingMode === "asap") return 0;
+  if (ws.postingMode === "smart") return ensureSmartSlots(ws, days);
   const slots = generateSlots({ schedule: ws.postingSchedule, timezone: ws.timezone, from: now(), days, postsPerDay: ws.postsPerDay, minLeadMinutes: 0 });
   if (slots.length === 0) return 0;
   const res = await db()
@@ -155,8 +165,22 @@ export async function createTrackedLink(ws: Workspace, c: Content, socialPostId:
 }
 
 /** Platform caption with the tracked CTA. Each platform gets its own copy. */
-export function buildCaption(c: Content, platform: Platform, code: string): { caption: string; title: string | null; hashtags: string[] } {
-  const url = `${getConfig().appUrl}/r/${code}`;
+/**
+ * Link placed in captions. The tracked link (/r/CODE) only when the dashboard is reachable from the
+ * internet; otherwise a direct WhatsApp link carrying the reference code (the lead is still attributed
+ * to the video) or the website — never a localhost address in a public post.
+ */
+export function captionLink(ws: Pick<Workspace, "whatsappNumber" | "website"> | null, code: string): string | null {
+  const appUrl = getConfig().appUrl;
+  if (isPublicAppUrl(appUrl)) return `${appUrl}/r/${code}`;
+  const phone = ws?.whatsappNumber?.replace(/\D/g, "");
+  if (phone) return `https://wa.me/${phone}?text=${encodeURIComponent(`Olá! Vim pelo vídeo e quero saber mais (código ${code})`)}`;
+  return ws?.website && /^https:\/\//.test(ws.website) ? ws.website : null;
+}
+
+export function buildCaption(c: Content, platform: Platform, code: string, ws: Pick<Workspace, "whatsappNumber" | "website"> | null = null): { caption: string; title: string | null; hashtags: string[] } {
+  const link = captionLink(ws, code);
+  const url = link ?? `código ${code}`;
   const copy = c.copy;
   const cta = c.cta ?? "Fale com a gente";
   switch (platform) {
@@ -192,7 +216,7 @@ async function eligibleAccounts(ws: Workspace, platforms: Platform[]) {
  * connected account (never another workspace's account), with its own caption
  * and tracked link. Returns the created post ids.
  */
-export async function createSocialPosts(ws: Workspace, c: Content, scheduledFor: Date, publishedBy: "AI" | "HUMAN", exec: DbExecutor = db()): Promise<SocialPost[]> {
+export async function createSocialPosts(ws: Workspace, c: Content, slotAt: Date, publishedBy: "AI" | "HUMAN", exec: DbExecutor = db(), opts: { tunePerNetwork?: boolean } = {}): Promise<SocialPost[]> {
   const platforms = (c.targetPlatforms.length ? c.targetPlatforms : ws.targetPlatforms) as Platform[];
   const accounts = await eligibleAccounts(ws, platforms);
   const covered = new Set(accounts.map((a) => a.platform));
@@ -210,6 +234,8 @@ export async function createSocialPosts(ws: Workspace, c: Content, scheduledFor:
   }
   const created: SocialPost[] = [];
   for (const acc of accounts) {
+    // Smart mode: each network goes out at its own best moment near the slot.
+    const scheduledFor = opts.tunePerNetwork ? tunedTimeFor(ws, acc.platform, slotAt) : slotAt;
     if (acc.workspaceId !== ws.id || c.workspaceId !== ws.id) {
       throw new AppError({ code: "WORKSPACE_MISMATCH", userMessage: "Safety check failed: account and content belong to different workspaces." });
     }
@@ -222,7 +248,7 @@ export async function createSocialPosts(ws: Workspace, c: Content, scheduledFor:
       continue;
     }
     const code = await createTrackedLink(ws, c, null, exec);
-    const cap = buildCaption(c, acc.platform, code);
+    const cap = buildCaption(c, acc.platform, code, ws);
     const [post] = await exec
       .insert(socialPosts)
       .values({
@@ -266,12 +292,45 @@ export async function enqueuePublishJobs(ws: Workspace, posts: SocialPost[], ori
   }
 }
 
-async function publishedCountForDay(ws: Workspace, localDate: string): Promise<number> {
-  const rows = await db()
+/**
+ * "As soon as it is ready": a couple of minutes from now, at least 30 minutes away from
+ * other scheduled videos and within the daily publication cap (otherwise null → next slot).
+ */
+async function asapTime(ws: Workspace): Promise<Date | null> {
+  let at = new Date(now().getTime() + 2 * 60_000);
+  for (let i = 0; i < 48 && (await hasScheduledNear(ws, at, MIN_POST_GAP_MIN)); i++) at = new Date(at.getTime() + MIN_POST_GAP_MIN * 60_000);
+  if ((await scheduledCountForDay(ws, at)) >= ws.maxContentPublishedPerDay) return null;
+  return at;
+}
+
+/** Minimum distance between two videos of the same business. */
+const MIN_POST_GAP_MIN = 30;
+
+async function hasScheduledNear(ws: Workspace, at: Date, minutes: number): Promise<boolean> {
+  const [row] = await db()
     .select({ n: sql<number>`count(*)` })
-    .from(postingSlots)
-    .where(and(eq(postingSlots.workspaceId, ws.id), eq(postingSlots.localDate, localDate), inArray(postingSlots.status, ["FILLED", "PUBLISHED"])));
-  return Number(rows[0]?.n ?? 0);
+    .from(contents)
+    .where(
+      and(
+        eq(contents.workspaceId, ws.id),
+        inArray(contents.status, ["SCHEDULED", "PUBLISHING", "PUBLISHED"]),
+        gt(contents.scheduledFor, new Date(at.getTime() - minutes * 60_000)),
+        lt(contents.scheduledFor, new Date(at.getTime() + minutes * 60_000)),
+      ),
+    );
+  return Number(row?.n ?? 0) > 0;
+}
+
+/** Videos already going out on the local day of `at` (slot-based and "as soon as ready" alike). */
+async function scheduledCountForDay(ws: Workspace, at: Date): Promise<number> {
+  const day = localDateString(at, ws.timezone);
+  const dayStart = startOfLocalDay(at, ws.timezone);
+  const dayEnd = zonedToUtc(addLocalDays(day, 1), "00:00", ws.timezone);
+  const [row] = await db()
+    .select({ n: sql<number>`count(*)` })
+    .from(contents)
+    .where(and(eq(contents.workspaceId, ws.id), inArray(contents.status, ["SCHEDULED", "PUBLISHING", "PUBLISHED"]), gte(contents.scheduledFor, dayStart), lt(contents.scheduledFor, dayEnd)));
+  return Number(row?.n ?? 0);
 }
 
 /**
@@ -290,6 +349,10 @@ export async function scheduleContent(contentId: string, origin: JobOrigin, opts
 
   let slotId: string | null = null;
   let at = opts.at ?? null;
+  const fromSlot = !at;
+  if (!at && c.status !== "SCHEDULED" && (ws.postingMode === "asap" || c.publishAsap)) {
+    at = await asapTime(ws);
+  }
   if (!at) {
     if (c.status === "SCHEDULED" && c.scheduledFor) return { scheduled: true, reason: "already scheduled", scheduledFor: c.scheduledFor };
     await ensureSlots(ws);
@@ -300,7 +363,8 @@ export async function scheduleContent(contentId: string, origin: JobOrigin, opts
       .orderBy(asc(postingSlots.scheduledFor))
       .limit(10);
     for (const s of open) {
-      if ((await publishedCountForDay(ws, s.localDate)) >= ws.maxContentPublishedPerDay) continue;
+      if ((await scheduledCountForDay(ws, s.scheduledFor)) >= ws.maxContentPublishedPerDay) continue;
+      if (await hasScheduledNear(ws, s.scheduledFor, MIN_POST_GAP_MIN)) continue;
       const claimed = await db()
         .update(postingSlots)
         .set({ status: "FILLED", contentId: c.id })
@@ -328,7 +392,7 @@ export async function scheduleContent(contentId: string, origin: JobOrigin, opts
         approvalStatus: publishDecision === "APPROVAL" && fresh.approvalStatus !== "APPROVED" ? "PENDING" : fresh.approvalStatus === "PENDING" ? "PENDING" : fresh.approvalStatus,
       })
       .where(eq(contents.id, c.id));
-    const posts = await createSocialPosts(ws, { ...fresh, scheduledFor: at }, at!, origin === "HUMAN" ? "HUMAN" : "AI", tx);
+    const posts = await createSocialPosts(ws, { ...fresh, scheduledFor: at }, at!, origin === "HUMAN" ? "HUMAN" : "AI", tx, { tunePerNetwork: fromSlot && slotId !== null && ws.postingMode === "smart" });
     const approved = fresh.approvalStatus === "APPROVED" || publishDecision === "ALLOW";
     if (approved) await enqueuePublishJobs(ws, posts, origin, tx);
     else {

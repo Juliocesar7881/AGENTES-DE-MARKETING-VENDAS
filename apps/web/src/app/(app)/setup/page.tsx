@@ -12,7 +12,7 @@ import { Badge, Dot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Progress } from "@/components/ui/misc";
 import { ago, cn } from "@/lib/utils";
-import { SETUP_STEPS, setupModel, type SetupModel, type SetupStepId, type StepState } from "@/server/setup";
+import { postingReadiness, SETUP_STEPS, setupModel, type SetupModel, type SetupStepId, type StepState } from "@/server/setup";
 
 export const metadata: Metadata = { title: "Setup" };
 
@@ -24,7 +24,7 @@ const DESCRIPTIONS: Record<SetupStepId, string> = {
   accounts: "Log in on each platform's own page. RevenueOS never sees your password; tokens are encrypted.",
   payments: "The Sales Agent sends checkout links. A sale only counts after the provider confirms the payment (signed webhook).",
   whatsapp: "Lets the Sales Agent answer leads on WhatsApp. Without it, leads still arrive through the tracked links and the lead form.",
-  public: "Payment confirmations, WhatsApp/Instagram messages and Instagram video publishing need an address reachable from the internet.",
+  public: "Publishing works without it. Payment confirmations, WhatsApp/Instagram messages and counting link clicks need an address reachable from the internet.",
   launch: "Choose how autonomous each business is, test every connection and start the first video.",
 };
 
@@ -286,7 +286,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       body = <PublicStep {...m.infra} tickUrl={`${m.infra.appUrl}/api/cron/tick`} />;
       break;
     case "launch":
-      body = <LaunchStep businesses={m.live} essentialsDone={m.essentialsDone} missing={essentials.filter((s) => m.state[s.id] !== "done").map((s) => s.title)} />;
+      body = <LaunchStep businesses={m.live} essentialsDone={m.essentialsDone} missing={essentials.filter((s) => m.state[s.id] !== "done").map((s) => s.title)} readiness={await postingReadiness(m)} />;
       break;
   }
 

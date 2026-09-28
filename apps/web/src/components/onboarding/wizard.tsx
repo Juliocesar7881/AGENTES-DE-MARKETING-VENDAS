@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, ArrowRight, Check, Globe, Plus, Rocket, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Globe, Plus, Rocket, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { PostingModePicker, type PostingModeValue } from "@/components/settings/posting-mode";
 import { analyzeWebsiteAction, createBusinessAction } from "@/server/actions/workspace";
+import { platformLabel } from "@/components/platform-icon";
 
 interface ProductDraft {
   name: string;
@@ -56,17 +58,17 @@ export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: bo
     targetPlatforms: ["INSTAGRAM", "TIKTOK", "YOUTUBE"] as string[],
     postsPerDay: 2,
     postingSchedule: ["09:00", "18:00"],
+    postingMode: "smart" as PostingModeValue,
     timezone: "America/Sao_Paulo",
     whatsappNumber: "",
     operatingMode: "ASSISTED" as "MANUAL" | "ASSISTED" | "AUTOPILOT",
   });
   const [analysis, setAnalysis] = useState<{ colors: string[]; name: string | null; description: string | null } | null>(null);
-  const [newTime, setNewTime] = useState("12:00");
   const set = <K extends keyof typeof d>(k: K, v: (typeof d)[K]) => setD((x) => ({ ...x, [k]: v }));
   const setProduct = (i: number, patch: Partial<ProductDraft>) => set("products", d.products.map((p, j) => (j === i ? { ...p, ...patch } : p)));
 
   const validProducts = d.products.filter((p) => p.name.trim().length >= 2);
-  const canNext = [d.name.trim().length >= 2, true, d.targetAudience.trim().length > 0, true, validProducts.length > 0 && validProducts.every((p) => Number(p.price.replace(",", ".")) >= 0 && p.price !== ""), true, d.targetPlatforms.length > 0 && d.postingSchedule.length >= 1, true, true, true][step];
+  const canNext = [d.name.trim().length >= 2, true, d.targetAudience.trim().length > 0, true, validProducts.length > 0 && validProducts.every((p) => Number(p.price.replace(",", ".")) >= 0 && p.price !== ""), true, d.targetPlatforms.length > 0 && (d.postingMode !== "fixed" || d.postingSchedule.length >= 1), true, true, true][step];
 
   const submit = () =>
     start(async () => {
@@ -78,7 +80,8 @@ export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: bo
         environment: "LIVE",
         timezone: d.timezone,
         postsPerDay: d.postsPerDay,
-        postingSchedule: d.postingSchedule,
+        postingSchedule: d.postingSchedule.length ? d.postingSchedule : ["09:00", "18:00"],
+        postingMode: d.postingMode,
         targetPlatforms: d.targetPlatforms,
         operatingMode: d.operatingMode,
         whatsappNumber: d.whatsappNumber || null,
@@ -288,7 +291,7 @@ export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: bo
                   {["INSTAGRAM", "TIKTOK", "YOUTUBE", "FACEBOOK"].map((p) => (
                     <label key={p} className="flex items-center gap-1.5 text-sm">
                       <Checkbox checked={d.targetPlatforms.includes(p)} onChange={(e) => set("targetPlatforms", e.target.checked ? [...d.targetPlatforms, p] : d.targetPlatforms.filter((x) => x !== p))} />
-                      {p.charAt(0) + p.slice(1).toLowerCase()}
+                      {platformLabel(p)}
                     </label>
                   ))}
                 </div>
@@ -309,21 +312,8 @@ export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: bo
                   </Select>
                 </Field>
               </div>
-              <Field label="Posting times">
-                <div className="flex flex-wrap items-center gap-2">
-                  {d.postingSchedule.map((t) => (
-                    <span key={t} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
-                      {t}
-                      <button onClick={() => set("postingSchedule", d.postingSchedule.filter((x) => x !== t))} aria-label={`Remove ${t}`}>
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  ))}
-                  <Input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="h-8 w-28" />
-                  <Button size="xs" onClick={() => !d.postingSchedule.includes(newTime) && set("postingSchedule", [...d.postingSchedule, newTime].sort())}>
-                    <Plus /> Add
-                  </Button>
-                </div>
+              <Field label="When to post">
+                <PostingModePicker mode={d.postingMode} onMode={(m) => set("postingMode", m)} times={d.postingSchedule} onTimes={(t) => set("postingSchedule", t)} />
               </Field>
               <p className="text-xs text-muted-foreground">RevenueOS keeps 4 videos ready ahead of time and never generates more than 4 per day (editable later).</p>
             </>
@@ -371,7 +361,7 @@ export function OnboardingWizard({ isDemoUser, returnToSetup }: { isDemoUser: bo
                 </dd>
                 <dt className="text-muted-foreground">Publishing</dt>
                 <dd>
-                  {d.postsPerDay}/day at {d.postingSchedule.join(", ")} on {d.targetPlatforms.join(", ").toLowerCase()}
+                  {d.postsPerDay}/day {d.postingMode === "smart" ? "at smart times (audience peaks, learns from results)" : d.postingMode === "asap" ? "as soon as each video is ready" : `at ${d.postingSchedule.join(", ")}`} on {d.targetPlatforms.join(", ").toLowerCase()}
                 </dd>
                 <dt className="text-muted-foreground">Mode</dt>
                 <dd>

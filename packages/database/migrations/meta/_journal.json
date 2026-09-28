@@ -15,6 +15,13 @@
       "when": 1790519208270,
       "tag": "0001_rls_security",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790605177614,
+      "tag": "0002_smart_posting_times",
+      "breakpoints": true
     }
   ]
 }

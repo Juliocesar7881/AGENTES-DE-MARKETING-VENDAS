@@ -38,7 +38,7 @@ import { runContentQaOnSpec } from "./qa";
  * Strategist job: ONE AI call plans `count` briefs (batching saves cost), then
  * contents are created in PLANNING and handed to the Creative agent.
  */
-export async function runStrategyPlan(ws: Workspace, opts: { count: number; jobId: string; origin: JobOrigin; focus?: string | null }): Promise<{ contentIds: string[]; planId: string }> {
+export async function runStrategyPlan(ws: Workspace, opts: { count: number; jobId: string; origin: JobOrigin; focus?: string | null; publishAsap?: boolean }): Promise<{ contentIds: string[]; planId: string }> {
   const count = Math.max(1, Math.min(8, Math.round(opts.count)));
   const [business, perf] = await Promise.all([loadBusinessContext(ws), loadPerformanceContext(ws, 30)]);
   const ai = await resolveAI(ws, "strategist");
@@ -109,6 +109,7 @@ export async function runStrategyPlan(ws: Workspace, opts: { count: number; jobI
           variantLabel: b.experiment?.variantLabel ?? null,
           title: b.title,
           status: "PLANNING",
+          publishAsap: opts.publishAsap ?? false,
           brief: b,
           templateId: b.templateId,
           format: b.format,

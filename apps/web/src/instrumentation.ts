@@ -18,6 +18,17 @@ export async function register(): Promise<void> {
     } catch (e) {
       console.warn(`[revenueos] built-in database: ${e instanceof Error ? e.message : String(e)}`);
     }
+    try {
+      const { env } = await import("@revenueos/shared/server");
+      const url = env("DATABASE_URL");
+      if (url) {
+        const { migrateIfBehind } = await import("@revenueos/database");
+        const n = await migrateIfBehind(url);
+        if (n > 0) console.info(`[revenueos] database updated (${n} new migration${n > 1 ? "s" : ""})`);
+      }
+    } catch (e) {
+      console.warn(`[revenueos] database update skipped: ${e instanceof Error ? e.message : String(e)}`);
+    }
     const { announceSetup } = await import("./server/install");
     const { getConfig } = await import("@revenueos/core");
     void announceSetup(getConfig().appUrl).catch(() => undefined);

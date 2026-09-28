@@ -60,12 +60,27 @@ export async function runMigrations(url = process.env.DATABASE_URL): Promise<voi
   if (!url) throw new Error("DATABASE_URL is not set.");
   await ensureLocalDatabase(url);
   // Dedicated connection: migrate exactly the database given, whatever DATABASE_URL says.
+  // A session advisory lock serializes concurrent starters (dashboard, launcher, installer).
   const client = postgres(url, { max: 1, onnotice: () => {} });
   try {
+    await client`select pg_advisory_lock(hashtext('revenueos:migrations'))`;
     await migrate(drizzle(client), { migrationsFolder: MIGRATIONS_FOLDER });
+    await client`select pg_advisory_unlock(hashtext('revenueos:migrations'))`;
   } finally {
     await client.end({ timeout: 5 });
   }
+}
+
+/**
+ * After an update: applies new migrations to an already-installed database (never
+ * to an empty one — that is the installer's job). Returns how many were applied.
+ */
+export async function migrateIfBehind(url: string): Promise<number> {
+  const before = await migrationStatus(url);
+  if (before.applied === 0 || before.applied >= before.total) return 0;
+  await runMigrations(url);
+  const after = await migrationStatus(url);
+  return after.applied - before.applied;
 }
 
 /** Drops everything. Refuses to run against non-local databases unless ALLOW_DB_RESET=true. */

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AI_PROVIDER_IDS, MODEL_SLOTS, REAL_PLATFORMS } from "../enums";
+import { POSTING_MODES } from "../timing";
 
 export const AUTOPILOT_PERMISSION_KEYS = [
   "createStrategies",
@@ -76,6 +77,7 @@ export const WorkspaceSchedulingSchema = z.object({
   timezone: z.string().min(1).default("America/Sao_Paulo"),
   postsPerDay: z.number().int().min(0).max(12).default(2),
   postingSchedule: PostingScheduleSchema.default(["09:00", "18:00"]),
+  postingMode: z.enum(POSTING_MODES).default("smart"),
   targetReadyBuffer: z.number().int().min(0).max(30).default(4),
   maxContentGeneratedPerDay: z.number().int().min(0).max(24).default(4),
   maxContentPublishedPerDay: z.number().int().min(0).max(24).default(2),

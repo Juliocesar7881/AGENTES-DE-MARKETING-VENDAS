@@ -37,7 +37,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
               <span>{ws.industry}</span>
               <span>·</span>
               <span>
-                {ws.postsPerDay} posts/day at {ws.postingSchedule.join(", ")} ({ws.timezone})
+                {ws.postingMode === "asap" ? "posts as soon as each video is ready" : ws.postingMode === "fixed" ? `${ws.postsPerDay} posts/day at ${ws.postingSchedule.join(", ")}` : `${ws.postsPerDay} posts/day at smart times`} ({ws.timezone})
               </span>
             </div>
           </div>

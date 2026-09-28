@@ -1,15 +1,15 @@
 "use client";
-import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { OperatingMode, SalesSettings, RetentionSettings } from "@revenueos/shared";
-import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { setModeAction, updateWorkspaceSection } from "@/server/actions/workspace";
+import { PostingModePicker, TimingInsights, type PostingModeValue, type TimingInsightsView } from "./posting-mode";
 import { SettingsSection } from "./section";
+import { platformLabel } from "@/components/platform-icon";
 
 export interface WsSettingsData {
   id: string;
@@ -23,6 +23,7 @@ export interface WsSettingsData {
   timezone: string;
   postsPerDay: number;
   postingSchedule: string[];
+  postingMode: PostingModeValue;
   targetReadyBuffer: number;
   maxContentGeneratedPerDay: number;
   maxContentPublishedPerDay: number;
@@ -38,7 +39,7 @@ export interface WsSettingsData {
 const TZS = ["America/Sao_Paulo", "America/Manaus", "America/Recife", "America/Fortaleza", "America/Belem", "America/Cuiaba", "America/Porto_Velho", "America/Rio_Branco", "America/Noronha", "America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/Lisbon", "Europe/London", "UTC"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function WorkspaceSettings({ data }: { data: WsSettingsData }) {
+export function WorkspaceSettings({ data, timing }: { data: WsSettingsData; timing?: TimingInsightsView | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const save = (section: Parameters<typeof updateWorkspaceSection>[1], input: unknown) =>
@@ -50,11 +51,10 @@ export function WorkspaceSettings({ data }: { data: WsSettingsData }) {
     });
 
   const [general, setGeneral] = useState({ name: data.name, industry: data.industry, website: data.website ?? "", description: data.description, color: data.color, whatsappNumber: data.whatsappNumber ?? "", currency: data.currency });
-  const [sched, setSched] = useState({ timezone: data.timezone, postsPerDay: data.postsPerDay, postingSchedule: data.postingSchedule, targetReadyBuffer: data.targetReadyBuffer, maxContentGeneratedPerDay: data.maxContentGeneratedPerDay, maxContentPublishedPerDay: data.maxContentPublishedPerDay, targetPlatforms: data.targetPlatforms });
+  const [sched, setSched] = useState({ timezone: data.timezone, postsPerDay: data.postsPerDay, postingSchedule: data.postingSchedule, postingMode: data.postingMode, targetReadyBuffer: data.targetReadyBuffer, maxContentGeneratedPerDay: data.maxContentGeneratedPerDay, maxContentPublishedPerDay: data.maxContentPublishedPerDay, targetPlatforms: data.targetPlatforms });
   const [sales, setSales] = useState(data.salesSettings);
   const [retention, setRetention] = useState(data.retention);
   const [budget, setBudget] = useState({ daily: data.dailyAiBudgetUsd?.toString() ?? "", monthly: data.monthlyAiBudgetUsd?.toString() ?? "" });
-  const [newTime, setNewTime] = useState("12:00");
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -141,22 +141,10 @@ export function WorkspaceSettings({ data }: { data: WsSettingsData }) {
             <Input type="number" min={0} max={12} value={sched.postsPerDay} onChange={(e) => setSched({ ...sched, postsPerDay: Number(e.target.value) })} />
           </Field>
         </div>
-        <Field label="Posting times">
-          <div className="flex flex-wrap items-center gap-2">
-            {sched.postingSchedule.map((t) => (
-              <span key={t} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">
-                {t}
-                <button onClick={() => setSched({ ...sched, postingSchedule: sched.postingSchedule.filter((x) => x !== t) })} aria-label={`Remove ${t}`}>
-                  <X className="size-3" />
-                </button>
-              </span>
-            ))}
-            <Input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="h-8 w-28" />
-            <Button size="xs" onClick={() => newTime && !sched.postingSchedule.includes(newTime) && setSched({ ...sched, postingSchedule: [...sched.postingSchedule, newTime].sort() })}>
-              <Plus /> Add
-            </Button>
-          </div>
+        <Field label="When to post">
+          <PostingModePicker mode={sched.postingMode} onMode={(m) => setSched({ ...sched, postingMode: m })} times={sched.postingSchedule} onTimes={(t) => setSched({ ...sched, postingSchedule: t })} />
         </Field>
+        {timing && sched.postingMode === "smart" ? <TimingInsights data={timing} mode={sched.postingMode} /> : null}
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Ready buffer target">
             <Input type="number" min={0} max={30} value={sched.targetReadyBuffer} onChange={(e) => setSched({ ...sched, targetReadyBuffer: Number(e.target.value) })} />
@@ -173,7 +161,7 @@ export function WorkspaceSettings({ data }: { data: WsSettingsData }) {
             {(data.environment === "DEMO" ? ["INSTAGRAM", "TIKTOK", "YOUTUBE", "FACEBOOK"] : ["INSTAGRAM", "TIKTOK", "YOUTUBE", "FACEBOOK"]).map((p) => (
               <label key={p} className="flex items-center gap-1.5 text-sm">
                 <Checkbox checked={sched.targetPlatforms.includes(p)} onChange={(e) => setSched({ ...sched, targetPlatforms: e.target.checked ? [...sched.targetPlatforms, p] : sched.targetPlatforms.filter((x) => x !== p) })} />
-                {p.charAt(0) + p.slice(1).toLowerCase()}
+                {platformLabel(p)}
               </label>
             ))}
           </div>

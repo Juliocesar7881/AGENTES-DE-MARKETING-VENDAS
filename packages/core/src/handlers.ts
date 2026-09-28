@@ -48,7 +48,7 @@ export function registerCoreHandlers(): void {
     async (job, ctx) => {
       const ws = await wsOf(job);
       if (policy(ws, "createStrategies", ctx.origin) !== "ALLOW") return { skipped: "strategy creation not allowed in current mode" };
-      const r = await runStrategyPlan(ws, { count: Number(job.payload.count ?? 1), jobId: job.id, origin: ctx.origin, focus: (job.payload.focus as string | null) ?? null });
+      const r = await runStrategyPlan(ws, { count: Number(job.payload.count ?? 1), jobId: job.id, origin: ctx.origin, focus: (job.payload.focus as string | null) ?? null, publishAsap: Boolean(job.payload.publishAsap) });
       return { contents: r.contentIds.length, planId: r.planId };
     },
     async (job, e) => {

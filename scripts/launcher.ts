@@ -14,7 +14,7 @@ import { randomInt } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join, resolve } from "node:path";
-import { embeddedDataDir, ensureEmbeddedPostgres, stopEmbeddedPostgres, stopEmbeddedPostgresByDataDir } from "@revenueos/database";
+import { embeddedDataDir, ensureEmbeddedPostgres, migrateIfBehind, stopEmbeddedPostgres, stopEmbeddedPostgresByDataDir } from "@revenueos/database";
 import { ensureRootEnv, env } from "@revenueos/shared/server";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -159,10 +159,21 @@ async function main(): Promise<void> {
   // after the dashboard and the worker have finished (see shutdown()).
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"] as const) process.removeAllListeners(sig);
 
-  // 2. Dashboard build
+  // 2. Database schema up to date after an update (the installer handles empty databases).
+  try {
+    const url = env("DATABASE_URL");
+    if (url) {
+      const n = await migrateIfBehind(url);
+      if (n > 0) say(`Database updated (${n} new migration${n > 1 ? "s" : ""}).`);
+    }
+  } catch (e) {
+    say(`${c.yellow}Database update skipped: ${e instanceof Error ? e.message : String(e)}${c.reset}`);
+  }
+
+  // 3. Dashboard build
   ensureBuild();
 
-  // 3. Dashboard + worker
+  // 4. Dashboard + worker
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const setupCode = Array.from({ length: 8 }, (_, i) => (i === 4 ? "-" : "") + alphabet[randomInt(alphabet.length)]).join("");
   const childEnv: NodeJS.ProcessEnv = { ...process.env, PORT: String(port), REVENUEOS_SETUP_CODE: setupCode, NEXT_TELEMETRY_DISABLED: "1" };
@@ -181,7 +192,7 @@ async function main(): Promise<void> {
   process.on("SIGHUP", () => void shutdown());
   process.on("SIGBREAK", () => void shutdown());
 
-  // 4. Browser
+  // 5. Browser
   let h: { setup?: string } | null = null;
   for (let i = 0; i < 120 && !h; i++) {
     await new Promise((r) => setTimeout(r, 1000));

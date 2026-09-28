@@ -1,5 +1,5 @@
 "use client";
-import { Bot, CircleAlert, CircleCheck, Cloud, Film, Globe, HardDrive, Loader2, PlayCircle, Rocket, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Bot, CircleAlert, CircleCheck, Cloud, EyeOff, Film, Globe, HardDrive, Loader2, PlayCircle, Rocket, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -166,7 +166,7 @@ export function PublicStep(props: {
           {props.publicUrl ? <Badge tone="success">public</Badge> : <Badge tone="warning">only on this computer</Badge>}
         </div>
         <p className="text-[13px] text-muted-foreground">
-          Mercado Pago/Stripe payment confirmations, WhatsApp and Instagram messages arrive at this address, and Instagram downloads videos from it. With <code className="font-mono">localhost</code>, videos still render and TikTok/YouTube can publish, but those need a public <strong>https</strong> address.
+          Videos are uploaded directly to each network, so publishing works from this computer. Mercado Pago/Stripe payment confirmations, WhatsApp and Instagram messages and link clicks arrive at this address, so those need a public <strong>https</strong> address. Until then, captions link straight to your WhatsApp with the video&apos;s code.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input value={url} onChange={(e) => setUrl(e.target.value)} disabled={!props.writable} aria-label="Dashboard address" />
@@ -259,7 +259,49 @@ const MODES = [
   ["AUTOPILOT", "Autopilot", "AI acts alone within your limits."],
 ] as const;
 
-export function LaunchStep(props: { businesses: { id: string; slug: string; name: string; operatingMode: string; status: string }[]; essentialsDone: boolean; missing: string[] }) {
+export interface ReadinessView {
+  id: string;
+  name: string;
+  networks: { platform: string; state: "ready" | "private" | "blocked"; detail: string; fix?: { label: string; href: string } }[];
+  notes: string[];
+}
+
+function Readiness({ items }: { items: ReadinessView[] }) {
+  if (!items.length) return null;
+  return (
+    <section className="grid gap-3">
+      <div>
+        <div className="text-sm font-semibold">Will it really post?</div>
+        <div className="text-[12px] text-muted-foreground">Checked against your real configuration, per business and network.</div>
+      </div>
+      {items.map((b) => (
+        <div key={b.id} className="rounded-xl border border-border">
+          {items.length > 1 ? <div className="border-b border-border px-3 py-2 text-[13px] font-semibold">{b.name}</div> : null}
+          <ul className="divide-y divide-border">
+            {b.networks.map((n, i) => (
+              <li key={`${n.platform}-${i}`} className="flex items-start gap-2.5 px-3 py-2 text-[13px]">
+                {n.state === "ready" ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-success" /> : n.state === "private" ? <EyeOff className="mt-0.5 size-4 shrink-0 text-warning" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-danger" />}
+                <span className="flex-1">{n.detail}</span>
+                {n.fix ? (
+                  <Link href={n.fix.href} className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[12px] font-medium hover:bg-muted">
+                    {n.fix.label}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {b.notes.map((note) => (
+            <p key={note} className="border-t border-border px-3 py-2 text-[12px] text-muted-foreground">
+              {note}
+            </p>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export function LaunchStep(props: { businesses: { id: string; slug: string; name: string; operatingMode: string; status: string }[]; essentialsDone: boolean; missing: string[]; readiness?: ReadinessView[] }) {
   const { pending, act } = useAct();
   const [results, setResults] = useState<CheckResult[] | null>(null);
   const [testing, startTest] = useTransition();
@@ -279,7 +321,7 @@ export function LaunchStep(props: { businesses: { id: string; slug: string; name
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" />
           <div>
             <div className="font-semibold text-foreground">Everything essential is connected</div>
-            <div className="text-muted-foreground">Choose how autonomous each business is and start the first video.</div>
+            <div className="text-muted-foreground">Choose how autonomous each business is and start the first video — it is published as soon as it is rendered, so you see the whole cycle; the next ones follow the smart posting times.</div>
           </div>
         </div>
       ) : (
@@ -291,6 +333,8 @@ export function LaunchStep(props: { businesses: { id: string; slug: string; name
           </div>
         </div>
       )}
+
+      <Readiness items={props.readiness ?? []} />
 
       <section className="grid gap-3">
         <div className="text-sm font-semibold">How autonomous should each business be?</div>
@@ -308,7 +352,7 @@ export function LaunchStep(props: { businesses: { id: string; slug: string; name
                     <PlayCircle /> Activate
                   </Button>
                 ) : null}
-                <Button size="sm" variant="primary" loading={pending} disabled={!props.essentialsDone} onClick={() => act(() => requestContentAction(b.id, { count: 1 }), () => "The Strategist is planning the first video — follow it in Content")}>
+                <Button size="sm" variant="primary" loading={pending} disabled={!props.essentialsDone} onClick={() => act(() => requestContentAction(b.id, { count: 1, publishAsap: true }), () => "The Strategist is planning the first video — it posts as soon as it is ready")}>
                   <Film /> Create the first video now
                 </Button>
               </div>

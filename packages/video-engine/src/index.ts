@@ -4,3 +4,4 @@ export { buildTheme, TEMPLATE_STYLES, type Theme, type TemplateStyle } from "./t
 export { FONT_FILES, fontStack } from "./fonts";
 export { fitFontSize, computeLayout, contrastRatio, readableOn } from "./utils";
 export { SAMPLE_SPEC } from "./sample";
+export * from "./transitions";
