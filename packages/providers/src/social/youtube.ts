@@ -17,6 +17,21 @@ import {
 
 const REQUIRED = ["https://www.googleapis.com/auth/youtube.upload"];
 
+/** snippet.tags: unique, without "#", within YouTube's 500-character budget (a tag with spaces counts its quotes). */
+export function youtubeTags(hashtags: string[]): string[] {
+  const out: string[] = [];
+  let used = 0;
+  for (const h of hashtags) {
+    const tag = h.replace(/^#/, "").trim();
+    if (!tag || tag.length > 100 || out.some((t) => t.toLowerCase() === tag.toLowerCase())) continue;
+    const cost = tag.length + (/\s/.test(tag) ? 2 : 0) + (out.length ? 1 : 0);
+    if (used + cost > 500) break;
+    out.push(tag);
+    used += cost;
+  }
+  return out;
+}
+
 function describeGoogle(_status: number, body: unknown) {
   const err = (body as { error?: { message?: string; errors?: { reason?: string }[] } | string; error_description?: string })?.error;
   if (!err) return undefined;
@@ -188,7 +203,9 @@ export class YouTubeProvider implements SocialProvider {
     if (!state.videoId) {
       if (!state.uploadUrl) {
         const title = (input.title || input.caption.split("\n")[0] || "Short").slice(0, 100);
-        const description = [input.caption, input.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")].filter(Boolean).join("\n\n").slice(0, 4900);
+        // YouTube shows up to 3 hashtags above the title; the full list goes to snippet.tags.
+        const description = [input.caption, input.hashtags.slice(0, 3).map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")].filter(Boolean).join("\n\n").slice(0, 4900);
+        const tags = youtubeTags(input.hashtags);
         const init = await request<null>(
           "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
           {
@@ -201,7 +218,7 @@ export class YouTubeProvider implements SocialProvider {
               "x-upload-content-type": "video/mp4",
             },
             body: JSON.stringify({
-              snippet: { title, description, tags: input.hashtags.map((h) => h.replace(/^#/, "")).slice(0, 15), categoryId: "22" },
+              snippet: { title, description, tags, categoryId: "22" },
               status: { privacyStatus: privacy, selfDeclaredMadeForKids: false, containsSyntheticMedia: input.aiGenerated },
             }),
             describeError: describeGoogle,

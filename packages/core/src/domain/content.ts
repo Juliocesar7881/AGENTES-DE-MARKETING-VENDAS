@@ -188,7 +188,8 @@ export function buildCaption(c: Content, platform: Platform, code: string, ws: P
       return {
         title: copy?.youtube.title ?? c.title,
         caption: `${copy?.youtube.description ?? c.title}\n\n👉 ${cta}: ${url}`,
-        hashtags: (copy?.youtube.tags ?? []).map((t) => `#${t.replace(/^#/, "").replace(/\s+/g, "")}`).slice(0, 5),
+        // All tags go to YouTube's tag field; the provider shows only the first 3 as hashtags.
+        hashtags: (copy?.youtube.tags ?? []).map((t) => `#${t.replace(/^#/, "").replace(/\s+/g, "")}`).slice(0, 15),
       };
     case "FACEBOOK":
       return { title: null, caption: `${copy?.facebook.caption ?? c.title}\n\n👉 ${cta}: ${url}`, hashtags: [] };

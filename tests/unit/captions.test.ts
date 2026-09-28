@@ -30,3 +30,14 @@ describe("links in public captions", () => {
     expect(captionLink({ whatsappNumber: "5511999990000", website: null }, "K7QM2X")).toBe("https://revenue.minhaempresa.com.br/r/K7QM2X");
   });
 });
+
+describe("YouTube metadata", () => {
+  it("sends every tag (without #, deduplicated) within YouTube's 500-character budget", async () => {
+    const { youtubeTags } = await import("@revenueos/providers");
+    expect(youtubeTags(["#bitcoin", "#Bitcoin", "cripto", "#preço do bitcoin"])).toEqual(["bitcoin", "cripto", "preço do bitcoin"]);
+    const long = Array.from({ length: 15 }, (_, i) => `#${String(i).padStart(2, "0")}${"x".repeat(38)}`);
+    const tags = youtubeTags(long);
+    expect(tags.length).toBeLessThan(15);
+    expect(tags.join(",").length).toBeLessThanOrEqual(500);
+  });
+});
